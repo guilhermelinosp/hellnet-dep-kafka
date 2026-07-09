@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using Hellnet.Kafka.Abstractions;
 
 namespace Hellnet.Kafka.Serialization;
@@ -15,11 +16,11 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     };
 
     public byte[] Serialize<TMessage>(TMessage message)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
         => JsonSerializer.SerializeToUtf8Bytes(message, Options);
 
     public TMessage Deserialize<TMessage>(byte[] data)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
         => JsonSerializer.Deserialize<TMessage>(data, Options)
            ?? throw new InvalidOperationException($"Deserialization returned null for {typeof(TMessage).Name}");
 }

@@ -10,12 +10,12 @@ public interface IMessageSerializer
     /// <summary>
     /// Serializes a message to a byte array.
     /// </summary>
-    byte[] Serialize<TMessage>(TMessage message)
-        where TMessage : IMessage;
+    public byte[] Serialize<TMessage>(TMessage message)
+        where TMessage : class, IMessage;
 
     /// <summary>
     /// Deserializes a byte array to a message.
     /// </summary>
-    TMessage Deserialize<TMessage>(byte[] data)
-        where TMessage : IMessage;
+    public TMessage Deserialize<TMessage>(byte[] data)
+        where TMessage : class, IMessage;
 }
