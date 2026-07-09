@@ -7,13 +7,13 @@ pre-commit:
         - "**/bin/**"
         - "**/obj/**"
       run: |
-        dotnet format app/*.slnx --nologo --verbosity quiet --no-build
+        dotnet format app/*.slnx --nologo --verbosity quiet --no-build --no-restore
         git diff --cached --name-only --diff-filter=ACM -- '*.yaml' '*.yml' | xargs -r yq eval -i '.'
         git diff --cached --name-only --diff-filter=ACM -- '*.json' | xargs -r yq eval -i -o=json '.'
     build:
       run: dotnet build app/*.slnx -c release --nologo --verbosity quiet
     coverage:
-      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Exclude="[*Tests]*" /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
+      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build --no-restore /p:CollectCoverage=true /p:Exclude="[*Tests]*" /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
 commit-msg:
   commands:
     conventional:
