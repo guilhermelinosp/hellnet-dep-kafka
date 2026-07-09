@@ -24,6 +24,11 @@ Thumbs.db
 [Bb]uild/
 [Dd]eploy/
 
+# Secrets / infra manifests
+*-secret.yaml
+*-credentials*.yaml
+kafka-tls*.yaml
+
 # Coverage
 coverage/
 *.opencover.xml

@@ -8,24 +8,32 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
+#######################################
 # Project files
+#######################################
+
 [*.{csproj,props,targets,xml,config,nuspec,resx,ruleset,sln,slnx}]
 indent_size = 2
 
-# JSON/YAML
+#######################################
+# JSON / YAML
+#######################################
+
 [*.json]
 indent_size = 2
 
 [*.{yml,yaml}]
 indent_size = 2
 
+#######################################
 # Markdown
+#######################################
+
 [*.md]
 trim_trailing_whitespace = false
 
-
 #######################################
-# C# Formatting
+# C#
 #######################################
 
 [*.cs]
@@ -33,11 +41,14 @@ trim_trailing_whitespace = false
 # Usings
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = true
+
+# Language Style
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = true:warning
+
+# Predefined types
 dotnet_style_predefined_type_for_locals_parameters_members = true:warning
 dotnet_style_predefined_type_for_member_access = true:warning
-
-# Namespace
-csharp_style_namespace_declarations = file_scoped:warning
 
 # Accessibility
 dotnet_style_require_accessibility_modifiers = always:warning
@@ -46,7 +57,7 @@ dotnet_style_require_accessibility_modifiers = always:warning
 csharp_preferred_modifier_order = public,private,protected,internal,static,abstract,virtual,override,sealed,readonly,async,unsafe,new
 
 #######################################
-# Nullable / Modern C#
+# Modern C#
 #######################################
 
 dotnet_style_null_propagation = true:warning
@@ -63,7 +74,7 @@ csharp_style_prefer_not_pattern = true:warning
 csharp_style_prefer_extended_property_pattern = true:warning
 
 #######################################
-# var usage
+# var
 #######################################
 
 csharp_style_var_for_built_in_types = true:warning
@@ -77,32 +88,23 @@ csharp_style_var_elsewhere = false:warning
 dotnet_naming_rule.types_pascal_case.severity = warning
 dotnet_naming_rule.types_pascal_case.symbols = types
 dotnet_naming_rule.types_pascal_case.style = pascal_case
-
 dotnet_naming_symbols.types.applicable_kinds = class,struct,interface,enum,record,delegate
-
 dotnet_naming_style.pascal_case.capitalization = pascal_case
-
 
 dotnet_naming_rule.interfaces_prefix_i.severity = warning
 dotnet_naming_rule.interfaces_prefix_i.symbols = interfaces
 dotnet_naming_rule.interfaces_prefix_i.style = interface_style
-
 dotnet_naming_symbols.interfaces.applicable_kinds = interface
-
 dotnet_naming_style.interface_style.required_prefix = I
 dotnet_naming_style.interface_style.capitalization = pascal_case
-
 
 dotnet_naming_rule.private_fields_underscore.severity = warning
 dotnet_naming_rule.private_fields_underscore.symbols = private_fields
 dotnet_naming_rule.private_fields_underscore.style = private_field_style
-
 dotnet_naming_symbols.private_fields.applicable_kinds = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
-
 dotnet_naming_style.private_field_style.required_prefix = _
 dotnet_naming_style.private_field_style.capitalization = camel_case
-
 
 #######################################
 # Braces
@@ -111,7 +113,6 @@ dotnet_naming_style.private_field_style.capitalization = camel_case
 csharp_prefer_braces = true:warning
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = false
-
 
 #######################################
 # New lines
@@ -125,7 +126,6 @@ csharp_new_line_before_members_in_object_initializers = true
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_between_query_expression_clauses = true
 
-
 #######################################
 # Indentation
 #######################################
@@ -134,9 +134,8 @@ csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
 csharp_indent_labels = one_less_than_current
 
-
 #######################################
-# Expression body
+# Expression-bodied members
 #######################################
 
 csharp_style_expression_bodied_methods = true:suggestion
@@ -145,12 +144,11 @@ csharp_style_expression_bodied_properties = true:warning
 csharp_style_expression_bodied_indexers = true:warning
 csharp_style_expression_bodied_accessors = true:warning
 
-
 #######################################
-# Code quality
+# Code Quality
 #######################################
 
-dotnet_diagnostic.IDE0055.severity = warning
 dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0055.severity = warning
 dotnet_diagnostic.CA1822.severity = warning
 dotnet_diagnostic.CA1852.severity = warning
