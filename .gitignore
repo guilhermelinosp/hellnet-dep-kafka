@@ -27,3 +27,4 @@ Thumbs.db
 # Coverage
 coverage/
 *.opencover.xml
+coverage.json

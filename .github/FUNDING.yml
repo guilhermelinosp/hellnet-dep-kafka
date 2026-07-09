@@ -1,1 +1,89 @@
 github: guilhermelinosp
+---
+name: auto-pr
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+jobs:
+  create-pr:
+    uses: guilhermelinosp/ci-templates/.github/workflows/auto-pr.yml@main
+---
+name: Publish NuGet
+on:
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      HELLNET_SERVICE_NAME: test-service
+      HELLNET_OTLP_ENDPOINT: http://localhost:4317
+      HELLNET_OTLP_PROTOCOL: grpc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+      - name: Restore
+        run: dotnet restore app/*.slnx
+      - name: Build
+        run: dotnet build app/*.slnx --configuration Release --no-restore -p:Version=${{ steps.version.outputs.VERSION }}
+      - name: Test
+        run: dotnet test app/*.slnx --configuration Release --no-build --verbosity normal
+      - name: Pack
+        run: dotnet pack app/*.slnx --configuration Release --no-build --output ./artifacts -p:Version=${{ steps.version.outputs.VERSION }}
+      - name: Publish to GitHub Packages
+        run: dotnet nuget push "./artifacts/*.nupkg" --source "https://nuget.pkg.github.com/guilhermelinosp/index.json" --api-key ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to NuGet.org
+        run: dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+            ./assets/icon.§png
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+---
+output: false
+pre-commit:
+  commands:
+    format:
+      glob: "{**/*.cs,**/*.yaml,**/*.yml,**/*.json}"
+      exclude:
+        - "**/bin/**"
+        - "**/obj/**"
+      run: |
+        dotnet format app/*.slnx --verbosity quiet --no-restore
+        git diff --cached --name-only --diff-filter=ACM -- '*.yaml' '*.yml' | xargs -r yq eval -i '.'
+        git diff --cached --name-only --diff-filter=ACM -- '*.json' | xargs -r yq eval -i -o=json '.'
+    build:
+      run: dotnet build app/*.slnx -c release --nologo
+    coverage:
+      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        grep -Eq '^(feat|fix|docs|style|ref|perf|test|ci|chore|rev)(\(.+\))?!?: .+' {1}
