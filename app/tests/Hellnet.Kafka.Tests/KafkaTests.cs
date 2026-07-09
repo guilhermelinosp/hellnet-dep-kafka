@@ -187,9 +187,10 @@ public sealed class KafkaEnvBinderTests : IDisposable
     }
 
     [Fact]
-    public void EnvOrNull_ReturnsNull_WhenNotSet()
+    public void EnvOrNull_ReturnsFallback_WhenNotSet()
     {
-        Assert.Null(KafkaEnvBinder.EnvOrNull("NONEXISTENT"));
+        Assert.Null(KafkaEnvBinder.EnvOrNull("NONEXISTENT", null));
+        Assert.Equal("fb", KafkaEnvBinder.EnvOrNull("NONEXISTENT", "fb"));
     }
 }
 
@@ -213,6 +214,92 @@ public sealed class HellnetKafkaOptionsTests
         Assert.Equal("https", opts.SslEndpointIdentificationAlgorithm);
         Assert.Equal("", opts.TopicPrefix);
         Assert.Equal("classic", opts.GroupProtocol);
+    }
+}
+
+// ============================================================
+// HellnetKafkaDefaults tests
+// ============================================================
+
+public sealed class HellnetKafkaDefaultsTests
+{
+    [Fact]
+    public void Create_SetsInfraDefaults()
+    {
+        var opts = HellnetKafkaDefaults.Create();
+        Assert.Equal("192.168.1.254:9094", opts.Brokers);
+        Assert.Equal("sasl_ssl", opts.SecurityProtocol);
+        Assert.Equal("SCRAM-SHA-512", opts.SaslMechanism);
+        Assert.Equal("hellnet-app", opts.SaslUsername);
+        Assert.Equal("hellnet2026", opts.SaslPassword);
+        Assert.Equal("", opts.SslEndpointIdentificationAlgorithm);
+        Assert.Equal("avro", opts.DefaultSerializer);
+        Assert.Equal("http://192.168.1.254:8085", opts.SchemaRegistryUrl);
+        Assert.Equal("hellnet", opts.TopicPrefix);
+        Assert.True(opts.Idempotent);
+    }
+}
+
+// ============================================================
+// KafkaEnvBinder with base options tests
+// ============================================================
+
+public sealed class KafkaEnvBinderWithBaseTests : IDisposable
+{
+    public KafkaEnvBinderWithBaseTests() => ClearEnv();
+    public void Dispose() => ClearEnv();
+
+    private static void ClearEnv()
+    {
+        foreach (var key in new[]
+        {
+            "HELLNET_KAFKA_BROKERS",
+            "HELLNET_KAFKA_SASL_MECHANISM",
+            "HELLNET_KAFKA_TOPIC_PREFIX",
+        })
+            Environment.SetEnvironmentVariable(key, null);
+    }
+
+    [Fact]
+    public void Bind_UsesBaseValues_WhenNoEnvSet()
+    {
+        var baseOpts = new HellnetKafkaOptions
+        {
+            Brokers = "base:9092",
+            SaslMechanism = "SCRAM-SHA-512",
+            TopicPrefix = "baseprefix",
+        };
+
+        var result = KafkaEnvBinder.Bind(baseOpts);
+        Assert.Equal("base:9092", result.Brokers);
+        Assert.Equal("SCRAM-SHA-512", result.SaslMechanism);
+        Assert.Equal("baseprefix", result.TopicPrefix);
+    }
+
+    [Fact]
+    public void Bind_EnvOverridesBase()
+    {
+        var baseOpts = new HellnetKafkaOptions
+        {
+            Brokers = "base:9092",
+            TopicPrefix = "baseprefix",
+        };
+
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_BROKERS", "env:9092");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_TOPIC_PREFIX", "envprefix");
+
+        var result = KafkaEnvBinder.Bind(baseOpts);
+        Assert.Equal("env:9092", result.Brokers);
+        Assert.Equal("envprefix", result.TopicPrefix);
+    }
+
+    [Fact]
+    public void BindWithDefaults_SetsInfraValues()
+    {
+        var result = KafkaEnvBinder.Bind(HellnetKafkaDefaults.Create());
+        Assert.Equal("192.168.1.254:9094", result.Brokers);
+        Assert.Equal("sasl_ssl", result.SecurityProtocol);
+        Assert.Equal("avro", result.DefaultSerializer);
     }
 }
 
@@ -548,6 +635,19 @@ public sealed class DependencyInjectionTests
         var sp = services.BuildServiceProvider();
         var serializer = sp.GetRequiredService<IMessageSerializer>();
         Assert.IsType<JsonMessageSerializer>(serializer);
+    }
+
+    [Fact]
+    public void AddHellnetKafkaWithDefaults_SetsInfraBrokers()
+    {
+        var services = new ServiceCollection();
+        services.AddHellnetKafkaWithDefaults();
+        var sp = services.BuildServiceProvider();
+        var opts = sp.GetRequiredService<HellnetKafkaOptions>();
+        Assert.Equal("192.168.1.254:9094", opts.Brokers);
+        Assert.Equal("sasl_ssl", opts.SecurityProtocol);
+        Assert.Equal("avro", opts.DefaultSerializer);
+        Assert.Equal("hellnet", opts.TopicPrefix);
     }
 }
 

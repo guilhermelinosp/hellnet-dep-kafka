@@ -19,10 +19,22 @@ public static class DependencyInjection
     /// Registers Hellnet.Kafka services using environment variables.
     /// </summary>
     public static IServiceCollection AddHellnetKafka(this IServiceCollection services)
-    {
-        var options = KafkaEnvBinder.Bind();
-        return services.AddHellnetKafka(options);
-    }
+        => services.AddHellnetKafka(KafkaEnvBinder.Bind());
+
+    /// <summary>
+    /// Registers Hellnet.Kafka with Hellnet infra defaults.
+    /// Apenas consumer group e senha precisam ser setados por serviço.
+    /// Env vars HELLNET_KAFKA_* sobrescrevem os defaults.
+    /// </summary>
+    /// <example>
+    /// Minimal config needed per microservice:
+    /// <code>
+    /// HELLNET_KAFKA_CONSUMER_GROUP=hellnet.orders.service
+    /// HELLNET_KAFKA_SASL_PASSWORD=hellnet2026
+    /// </code>
+    /// </example>
+    public static IServiceCollection AddHellnetKafkaWithDefaults(this IServiceCollection services)
+        => services.AddHellnetKafka(KafkaEnvBinder.Bind(HellnetKafkaDefaults.Create()));
 
     /// <summary>
     /// Registers Hellnet.Kafka services with explicit options.
