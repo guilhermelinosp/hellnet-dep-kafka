@@ -90,8 +90,18 @@ public sealed class KafkaEnvBinderTests : IDisposable
             "HELLNET_KAFKA_SSL_CA_LOCATION",
             "HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM",
             "HELLNET_KAFKA_SCHEMA_REGISTRY_URL",
+            "HELLNET_KAFKA_SCHEMA_REGISTRY_USERNAME",
+            "HELLNET_KAFKA_SCHEMA_REGISTRY_PASSWORD",
             "HELLNET_KAFKA_TOPIC_PREFIX",
             "HELLNET_KAFKA_GROUP_PROTOCOL",
+            "HELLNET_KAFKA_RETRY_DELAY_MS",
+            "HELLNET_KAFKA_RETRY_MAX_DELAY_MS",
+            "HELLNET_KAFKA_RETRY_JITTER_MS",
+            "HELLNET_KAFKA_TIMEOUT_PRODUCE_MS",
+            "HELLNET_KAFKA_TIMEOUT_SCHEMA_REGISTRY_MS",
+            "HELLNET_KAFKA_CIRCUIT_BREAKER_COUNT",
+            "HELLNET_KAFKA_CIRCUIT_BREAKER_DURATION_MS",
+            "HELLNET_KAFKA_DEAD_LETTER_TOPIC",
         })
         {
             Environment.SetEnvironmentVariable(key, null);
@@ -260,6 +270,19 @@ public sealed class KafkaEnvBinderWithBaseTests : IDisposable
             "HELLNET_KAFKA_BROKERS",
             "HELLNET_KAFKA_SASL_MECHANISM",
             "HELLNET_KAFKA_TOPIC_PREFIX",
+            "HELLNET_KAFKA_SECURITY_PROTOCOL",
+            "HELLNET_KAFKA_SSL_CA_LOCATION",
+            "HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM",
+            "HELLNET_KAFKA_DEFAULT_SERIALIZER",
+            "HELLNET_KAFKA_SCHEMA_REGISTRY_URL",
+            "HELLNET_KAFKA_GROUP_PROTOCOL",
+            "HELLNET_KAFKA_CONSUMER_GROUP",
+            "HELLNET_KAFKA_CLIENT_ID",
+            "HELLNET_KAFKA_AUTO_REGISTER_HANDLERS",
+            "HELLNET_KAFKA_MAX_RETRIES",
+            "HELLNET_KAFKA_IDEMPOTENT",
+            "HELLNET_KAFKA_ACKS",
+            "HELLNET_KAFKA_AUTO_OFFSET_RESET",
         })
             Environment.SetEnvironmentVariable(key, null);
     }
@@ -779,6 +802,15 @@ public sealed class ResiliencePipelinesTests
     }
 
     [Fact]
+    public void KafkaMesssageBus_ResolveTopic_WithNullPrefix()
+    {
+        var opts = new HellnetKafkaOptions { TopicPrefix = "" };
+        var logger = NullLogger<KafkaMessageBus>.Instance;
+        var bus = new KafkaMessageBus(opts, new JsonMessageSerializer(), logger);
+        bus.ResolveTopic(new TestMessage()).Should().Be("test.message.v1");
+    }
+
+    [Fact]
     public async Task HandlerPipeline_ExecutesSuccessfully()
     {
         var opts = new HellnetKafkaOptions();
@@ -845,6 +877,36 @@ public sealed class KafkaConfigBuilderTimeoutTests
         var opts = new HellnetKafkaOptions { TimeoutProduceMs = 20000 };
         var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "test-group");
         config.SessionTimeoutMs.Should().Be(20000);
+    }
+
+    [Fact]
+    public void BuildProducerConfig_WithSaslMechanism_SetsSecurity()
+    {
+        var opts = new HellnetKafkaOptions
+        {
+            SecurityProtocol = "sasl_plaintext",
+            SaslMechanism = "PLAIN",
+            SaslUsername = "user",
+            SaslPassword = "pass",
+        };
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        config.SecurityProtocol.Should().Be(Confluent.Kafka.SecurityProtocol.SaslPlaintext);
+        config.SaslMechanism.Should().Be(Confluent.Kafka.SaslMechanism.Plain);
+    }
+
+    [Fact]
+    public void BuildProducerConfig_WithEmptySasl_DoesNotSetSasl()
+    {
+        var opts = new HellnetKafkaOptions
+        {
+            SecurityProtocol = "ssl",
+            SaslMechanism = null,
+            SaslUsername = null,
+            SaslPassword = null,
+        };
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        config.SecurityProtocol.Should().Be(Confluent.Kafka.SecurityProtocol.Ssl);
+        config.SaslMechanism.Should().BeNull();
     }
 }
 
