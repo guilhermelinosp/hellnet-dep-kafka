@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using NSubstitute;
 using Xunit;
 
 namespace Hellnet.Kafka.UnitTests;
@@ -478,13 +477,15 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 3 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = Substitute.For<IMessageHandler<TestMessage>>();
+        var handlerMock = new Mock<IMessageHandler<TestMessage>>();
+        handlerMock.Setup(x => x.HandleAsync(It.IsAny<TestMessage>(), It.IsAny<IMessageContext>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         var ctx = CreateContext();
         var message = new TestMessage();
 
-        await engine.ExecuteAsync(handler, message, ctx, CancellationToken.None);
+        await engine.ExecuteAsync(handlerMock.Object, message, ctx, CancellationToken.None);
 
-        await handler.Received(1).HandleAsync(message, ctx, Arg.Any<CancellationToken>());
+        handlerMock.Verify(x => x.HandleAsync(message, ctx, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -492,21 +493,21 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 5 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = Substitute.For<IMessageHandler<TestMessage>>();
+        var handlerMock = new Mock<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
         var message = new TestMessage();
         var callCount = 0;
 
-        handler.HandleAsync(message, ctx, Arg.Any<CancellationToken>())
+        handlerMock.Setup(x => x.HandleAsync(It.IsAny<TestMessage>(), It.IsAny<IMessageContext>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask)
-            .AndDoes(_ =>
+            .Callback(() =>
             {
                 callCount++;
                 if (callCount <= 2)
                     throw new InvalidOperationException($"Simulated failure #{callCount}");
             });
 
-        await engine.ExecuteAsync(handler, message, ctx, CancellationToken.None);
+        await engine.ExecuteAsync(handlerMock.Object, message, ctx, CancellationToken.None);
 
         callCount.Should().Be(3);
     }
@@ -516,16 +517,16 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 2 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = Substitute.For<IMessageHandler<TestMessage>>();
+        var handlerMock = new Mock<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
         var message = new TestMessage();
 
-        handler.HandleAsync(message, ctx, Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<object?>(new InvalidOperationException("fail")));
+        handlerMock.Setup(x => x.HandleAsync(It.IsAny<TestMessage>(), It.IsAny<IMessageContext>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("fail"));
 
-        await engine.Invoking(e => e.ExecuteAsync(handler, message, ctx, CancellationToken.None))
+        await engine.Invoking(e => e.ExecuteAsync(handlerMock.Object, message, ctx, CancellationToken.None))
             .Should().ThrowAsync<InvalidOperationException>();
-        await handler.Received(2).HandleAsync(Arg.Any<TestMessage>(), Arg.Any<IMessageContext>(), Arg.Any<CancellationToken>());
+        handlerMock.Verify(x => x.HandleAsync(It.IsAny<TestMessage>(), It.IsAny<IMessageContext>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -533,13 +534,13 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 3 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = Substitute.For<IMessageHandler<TestMessage>>();
+        var handlerMock = new Mock<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
 
-        handler.HandleAsync(Arg.Any<TestMessage>(), Arg.Any<IMessageContext>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<object?>(new OperationCanceledException()));
+        handlerMock.Setup(x => x.HandleAsync(It.IsAny<TestMessage>(), It.IsAny<IMessageContext>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
 
-        await engine.Invoking(e => e.ExecuteAsync(handler, new TestMessage(), ctx, CancellationToken.None))
+        await engine.Invoking(e => e.ExecuteAsync(handlerMock.Object, new TestMessage(), ctx, CancellationToken.None))
             .Should().ThrowAsync<OperationCanceledException>();
     }
 
