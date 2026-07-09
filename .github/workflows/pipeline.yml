@@ -3,24 +3,22 @@ name: pipeline
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened]
+
+permissions: write-all
 
 jobs:
-  test:
-    uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-build.yml@main
-    with:
-      version: 0.0.0
-
   release:
-    if: github.ref == 'refs/heads/main'
-    needs: [test]
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yml@main
     secrets: inherit
 
-  publish:
-    if: github.ref == 'refs/heads/main'
+  build:
     needs: [release]
+    uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-build.yml@main
+    with:
+      version: ${{ needs.release.outputs.version }}
+
+  push:
+    needs: [build]
     uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-push.yml@main
     secrets: inherit
     with:
