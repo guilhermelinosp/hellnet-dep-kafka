@@ -20,7 +20,8 @@ dotnet add package Hellnet.Kafka
 - [MessageHandlerAttribute](#messagehandlerattribute)
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
-- [ADR — Decisões Técnicas](#adr--decisões-técnicas)
+- [ADR](#adr)
+- [Dependências](#dependências)
 
 ---
 
@@ -37,7 +38,7 @@ HELLNET_KAFKA_CONSUMER_GROUP=hellnet.meu-app.orders
 HELLNET_KAFKA_SASL_PASSWORD=hellnet2026
 ```
 
-### Produzir
+### Producer
 
 ```csharp
 public sealed record OrderCreated : IMessage
@@ -58,7 +59,7 @@ public class MeuService(IMessageBus bus)
 }
 ```
 
-### Consumir
+### Consumer
 
 ```csharp
 public class OrderHandler : IMessageHandler<OrderCreated>
@@ -69,14 +70,14 @@ public class OrderHandler : IMessageHandler<OrderCreated>
 
     public Task HandleAsync(OrderCreated msg, IMessageContext ctx, CancellationToken ct)
     {
-        _logger.LogInformation("Pedido {OrderId} recebido (partição {P}, offset {O})",
+        _logger.LogInformation("Pedido {OrderId} recebido (partition {P}, offset {O})",
             msg.OrderId, ctx.Partition, ctx.Offset);
         return Task.CompletedTask;
     }
 }
 ```
 
-O handler é **auto-descoberto** via DI — apenas defina a classe que a lib registra e inicia o consumer automaticamente.
+O handler é **auto-descoberto** via DI — apenas defina a classe que a biblioteca registra e inicia o consumer automaticamente.
 
 ---
 
@@ -102,7 +103,6 @@ Usa `AvroSerializer<T>` do Confluent com Schema Registry.
 Requer tipos Avro (`ISpecificRecord`) gerados de arquivos `.avsc`.
 
 ```csharp
-// Schema registrado no Apicurio Registry (hellnet-dep-schema)
 [AvroSchema(EmbeddedResource = "Schemas.order-created.avsc")]
 public sealed record OrderCreated : IMessage
 {
@@ -140,9 +140,9 @@ ProduceAsync falha (broker timeout)
   → Timeout 30s → estoura
   → Retry 1 (200ms + jitter)
   → Retry 2 (400ms + jitter)
-  → Circuit breaker conta +1 (5/5 → ABERTO)
+  → Circuit breaker conta +1 (5/5 → OPEN)
   → Próximos produce por 30s: falham instantaneamente
-  → Após 30s: half-open → testa → se ok → FECHA
+  → Após 30s: half-open → testa → se ok → CLOSED
 ```
 
 ---
@@ -155,24 +155,24 @@ ProduceAsync falha (broker timeout)
   └── HELLNET_KAFKA_TOPIC_PREFIX (default: "hellnet")
 ```
 
-| MessageType | Tópico final |
+| MessageType | Topic final |
 |---|---|
 | `order.created.v1` | `hellnet.order.created.v1` |
 | `invoice.paid.v1` | `hellnet.invoice.paid.v1` |
 | `stock.updated.v1` | `hellnet.stock.updated.v1` |
 
-Consumer group segue o padrão `hellnet.{app}.{dominio}.{evento}`.
+Consumer group segue o padrão `hellnet.{app}.{domain}.{event}`.
 
 ---
 
 ## Dead Letter Queue
 
-Quando um handler esgota os retries, a mensagem é publicada no tópico `{topic}.dlq`:
+Quando um handler esgota os retries, a mensagem é publicada no topic `{topic}.dlq`:
 
 | Header | Descrição |
 |--------|-----------|
 | `dlq.reason` | Motivo da falha |
-| `dlq.original.topic` | Tópico original |
+| `dlq.original.topic` | Topic original |
 | `dlq.original.partition` | Partição original |
 | `dlq.original.offset` | Offset original |
 
@@ -185,7 +185,7 @@ Quando um handler esgota os retries, a mensagem é publicada no tópico `{topic}
 public class MeuHandler : IMessageHandler<MinhaMsg> { }
 ```
 
-Sobrescreve o tópico, grupo e número de retries por handler.
+Sobrescreve o topic, consumer group e número de retries por handler.
 
 ---
 
@@ -200,20 +200,20 @@ Sobrescreve o tópico, grupo e número de retries por handler.
 | `HELLNET_KAFKA_SASL_MECHANISM` | `SCRAM-SHA-512` | PLAIN, SCRAM-SHA-256/512 |
 | `HELLNET_KAFKA_SASL_USERNAME` | `hellnet-app` | Usuário SCRAM |
 | `HELLNET_KAFKA_SASL_PASSWORD` | — | **Obrigatório** |
-| `HELLNET_KAFKA_SSL_CA_LOCATION` | — | Path do CA cert |
-| `HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM` | `""` | Vazio = desliga hostname verification |
-| `HELLNET_KAFKA_CONSUMER_GROUP` | `""` | **Obrigatório** para consumidores |
-| `HELLNET_KAFKA_TOPIC_PREFIX` | `hellnet` | Prefixo dos tópicos |
+| `HELLNET_KAFKA_SSL_CA_LOCATION` | — | Caminho do CA certificate |
+| `HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM` | `""` | Vazio desliga hostname verification |
+| `HELLNET_KAFKA_CONSUMER_GROUP` | `""` | **Obrigatório** para consumers |
+| `HELLNET_KAFKA_TOPIC_PREFIX` | `hellnet` | Prefixo dos topics |
 | `HELLNET_KAFKA_GROUP_PROTOCOL` | `classic` | classic, consumer (KIP-848) |
 | `HELLNET_KAFKA_DEFAULT_SERIALIZER` | `avro` | json, avro, protobuf |
 | `HELLNET_KAFKA_SCHEMA_REGISTRY_URL` | `https://schema.hellnet.com.br` | URL do Schema Registry |
 | `HELLNET_KAFKA_IDEMPOTENT` | `true` | Producer idempotente |
-| `HELLNET_KAFKA_MAX_RETRIES` | `3` | Total de tentativas (handler) |
+| `HELLNET_KAFKA_MAX_RETRIES` | `3` | Total de attempts (handler) |
 | `HELLNET_KAFKA_RETRY_DELAY_MS` | `200` | Delay base (exponential backoff) |
 | `HELLNET_KAFKA_TIMEOUT_PRODUCE_MS` | `30000` | Timeout de produce |
 | `HELLNET_KAFKA_TIMEOUT_SCHEMA_REGISTRY_MS` | `10000` | Timeout Schema Registry |
 | `HELLNET_KAFKA_CIRCUIT_BREAKER_COUNT` | `5` | Falhas antes de abrir o circuit breaker |
-| `HELLNET_KAFKA_DEAD_LETTER_TOPIC` | `{topic}.dlq` | Tópico de dead-letter |
+| `HELLNET_KAFKA_DEAD_LETTER_TOPIC` | `{topic}.dlq` | Topic de dead-letter |
 
 Com `AddHellnetKafka()`, apenas `HELLNET_KAFKA_CONSUMER_GROUP` e `HELLNET_KAFKA_SASL_PASSWORD` são obrigatórios por serviço.
 
@@ -249,10 +249,10 @@ App
 ### Fluxo de consumo
 
 1. `KafkaConsumerHost` descobre todos os `IMessageHandler<T>` no assembly (auto-discover)
-2. Cada handler ganha um consumer próprio com grupo dedicado
+2. Cada handler ganha um consumer próprio com consumer group dedicado
 3. Mensagem recebida → deserializa → executa `HandleAsync`
-4. Se lançar exceção → Polly retenta (exponential backoff com jitter)
-5. Se esgotar retries → `DeadLetterService` publica no tópico `.dlq` (com resiliência)
+4. Se lançar exception → Polly retenta (exponential backoff com jitter)
+5. Se esgotar retries → `DeadLetterService` publica no topic `.dlq` (com resiliência)
 6. Offset é commitado apenas após sucesso ou DLQ
 
 ### Estrutura do projeto
@@ -272,7 +272,7 @@ app/
 
 ---
 
-## ADR — Decisões Técnicas
+## ADR
 
 As decisões arquiteturais da biblioteca estão documentadas no formato ADR (Architecture Decision Record).
 
@@ -280,9 +280,9 @@ As decisões arquiteturais da biblioteca estão documentadas no formato ADR (Arc
 
 ## Dependências
 
-| Pacote | Versão | Uso |
-|--------|--------|-----|
-| Confluent.Kafka | 2.15.0 | Cliente Kafka |
+| Package | Version | Uso |
+|---------|---------|-----|
+| Confluent.Kafka | 2.15.0 | Kafka client |
 | Confluent.SchemaRegistry | 2.15.0 | Schema Registry client |
 | Confluent.SchemaRegistry.Serdes.Avro | 2.15.0 | Serialização Avro |
 | Confluent.SchemaRegistry.Serdes.Json | 2.15.0 | Serialização JSON Schema |
