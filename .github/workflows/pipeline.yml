@@ -6,17 +6,23 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-build.yml@main
     with:
-      version: 0.0.0
+      runner: ubuntu-latest
+      version: "0.0.0"
 
   release:
     if: github.ref == 'refs/heads/main'
     needs: [test]
     uses: guilhermelinosp/ci-templates/.github/workflows/release.yml@main
     secrets: inherit
+    with:
+      runner: ubuntu-latest
 
   publish:
     if: github.ref == 'refs/heads/main'
@@ -24,4 +30,5 @@ jobs:
     uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-push.yml@main
     secrets: inherit
     with:
+      runner: ubuntu-latest
       version: ${{ needs.release.outputs.version }}
