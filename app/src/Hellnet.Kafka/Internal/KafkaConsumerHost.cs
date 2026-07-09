@@ -36,11 +36,8 @@ internal sealed class KafkaConsumerHost(
         await Task.WhenAll(tasks);
     }
 
-    internal List<Type> DiscoverHandlers()
+    internal static List<Type> DiscoverHandlers()
     {
-        if (!options.AutoRegisterHandlers)
-            return [];
-
         return AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(t => t is { IsClass: true, IsAbstract: false })
@@ -127,6 +124,10 @@ internal sealed class KafkaConsumerHost(
                 catch (ConsumeException ex)
                 {
                     logger.LogError(ex, "Consume error on {Topic}", topic);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unhandled error consuming from {Topic}", topic);
                 }
             }
         }
