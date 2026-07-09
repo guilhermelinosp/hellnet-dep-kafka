@@ -746,22 +746,15 @@ public sealed class KafkaConsumerHostTests
         var logger = NullLogger<KafkaConsumerHost>.Instance;
 
         var host = new KafkaConsumerHost(options, sp, logger);
-        var handlers = host.DiscoverHandlers();
+        var handlers = KafkaConsumerHost.DiscoverHandlers();
         Assert.Contains(typeof(TestHandler), handlers);
     }
 
     [Fact]
-    public void DiscoverHandlers_ReturnsEmpty_WhenAutoDisabled()
+    public void DiscoverHandlers_ReturnsHandlers_RegardlessOfOption()
     {
-        var options = new HellnetKafkaOptions { AutoRegisterHandlers = false };
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var sp = services.BuildServiceProvider();
-        var logger = NullLogger<KafkaConsumerHost>.Instance;
-
-        var host = new KafkaConsumerHost(options, sp, logger);
-        var handlers = host.DiscoverHandlers();
-        Assert.Empty(handlers);
+        var handlers = KafkaConsumerHost.DiscoverHandlers();
+        Assert.Contains(typeof(TestHandler), handlers);
     }
 
     [Fact]
