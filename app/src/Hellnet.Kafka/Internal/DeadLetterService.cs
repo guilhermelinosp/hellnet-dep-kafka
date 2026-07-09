@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Confluent.Kafka;
 using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
@@ -27,14 +28,8 @@ internal sealed class DeadLetterService : IAsyncDisposable
         _serializer = serializer;
         _logger = logger;
 
-        var config = new ProducerConfig
-        {
-            BootstrapServers = options.Brokers,
-            Acks = Confluent.Kafka.Acks.Leader,
-            ClientId = $"{options.ClientId}.dlq",
-        };
-
-        _producer = new ProducerBuilder<string, byte[]>(config).Build();
+        _producer = new ProducerBuilder<string, byte[]>(
+            KafkaConfigBuilder.BuildProducerConfig(options, "dlq")).Build();
     }
 
     [ExcludeFromCodeCoverage]
@@ -54,11 +49,11 @@ internal sealed class DeadLetterService : IAsyncDisposable
             Value = data,
             Headers = new Headers
             {
-                new Header("message.type", System.Text.Encoding.UTF8.GetBytes(message.MessageType)),
-                new Header("dlq.reason", System.Text.Encoding.UTF8.GetBytes(reason)),
-                new Header("dlq.original.topic", System.Text.Encoding.UTF8.GetBytes(context.Topic)),
-                new Header("dlq.original.partition", System.Text.Encoding.UTF8.GetBytes(context.Partition.ToString())),
-                new Header("dlq.original.offset", System.Text.Encoding.UTF8.GetBytes(context.Offset.ToString())),
+                new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
+                new("dlq.reason", Encoding.UTF8.GetBytes(reason)),
+                new("dlq.original.topic", Encoding.UTF8.GetBytes(context.Topic)),
+                new("dlq.original.partition", Encoding.UTF8.GetBytes(context.Partition.ToString())),
+                new("dlq.original.offset", Encoding.UTF8.GetBytes(context.Offset.ToString())),
             },
         }, ct);
 

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Confluent.Kafka;
 using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
@@ -40,7 +41,6 @@ internal sealed class KafkaConsumerHost(
         if (!options.AutoRegisterHandlers)
             return [];
 
-        // Scan assembly for IMessageHandler<T> implementations
         return AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(t => t is { IsClass: true, IsAbstract: false })
@@ -60,39 +60,16 @@ internal sealed class KafkaConsumerHost(
             .Cast<MessageHandlerAttribute>()
             .FirstOrDefault();
 
-        var topic = attr?.Topic ?? ResolveTopicFromMessageType(messageType);
+        var baseTopic = attr?.Topic ?? ResolveTopicFromMessageType(messageType);
         var groupId = attr?.ConsumerGroup ?? options.ConsumerGroup;
         var maxRetries = attr?.MaxRetries ?? options.MaxRetries;
 
-        var consumerConfig = new ConsumerConfig
-        {
-            BootstrapServers = options.Brokers,
-            GroupId = groupId,
-            AutoOffsetReset = options.AutoOffsetReset?.ToLowerInvariant() switch
-            {
-                "earliest" => Confluent.Kafka.AutoOffsetReset.Earliest,
-                "latest" => Confluent.Kafka.AutoOffsetReset.Latest,
-                _ => Confluent.Kafka.AutoOffsetReset.Earliest,
-            },
-            EnableAutoCommit = false,
-            ClientId = $"{options.ClientId}.{groupId}",
-        };
+        // Apply topic prefix
+        var topic = string.IsNullOrEmpty(options.TopicPrefix)
+            ? baseTopic
+            : $"{options.TopicPrefix}.{baseTopic}";
 
-        if (!string.IsNullOrWhiteSpace(options.SaslMechanism))
-        {
-            consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-            consumerConfig.SaslMechanism = options.SaslMechanism switch
-            {
-                "PLAIN" => SaslMechanism.Plain,
-                "SCRAM-SHA-256" => SaslMechanism.ScramSha256,
-                "SCRAM-SHA-512" => SaslMechanism.ScramSha512,
-                "GSSAPI" => SaslMechanism.Gssapi,
-                "OAUTHBEARER" => SaslMechanism.OAuthBearer,
-                _ => null,
-            };
-            consumerConfig.SaslUsername = options.SaslUsername;
-            consumerConfig.SaslPassword = options.SaslPassword;
-        }
+        var consumerConfig = KafkaConfigBuilder.BuildConsumerConfig(options, groupId);
 
         using var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
         consumer.Subscribe(topic);
@@ -162,8 +139,6 @@ internal sealed class KafkaConsumerHost(
 
     internal static string ResolveTopicFromMessageType(Type messageType)
     {
-        // Convention: if message type has a static MessageType property via IMessage,
-        // create an instance to get it. Otherwise use type name.
         try
         {
             var instance = Activator.CreateInstance(messageType) as IMessage;
