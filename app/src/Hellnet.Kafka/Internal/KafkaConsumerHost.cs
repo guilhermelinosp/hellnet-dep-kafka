@@ -31,7 +31,11 @@ internal sealed class KafkaConsumerHost(
         }
 
         var tasks = handlerTypes.Select(handlerType =>
-            ConsumeLoop(handlerType, stoppingToken));
+            Task.Factory.StartNew(
+                () => ConsumeLoop(handlerType, stoppingToken),
+                stoppingToken,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default).Unwrap());
 
         await Task.WhenAll(tasks);
     }
