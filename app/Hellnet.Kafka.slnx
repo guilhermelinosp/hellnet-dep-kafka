@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="src/Hellnet.Kafka/Hellnet.Kafka.csproj" />
   <Project Path="tests/Hellnet.Kafka.Tests/Hellnet.Kafka.Tests.csproj" />
+  <Project Path="tests/Hellnet.Kafka.IntegrationTests/Hellnet.Kafka.IntegrationTests.csproj" />
 </Solution>
