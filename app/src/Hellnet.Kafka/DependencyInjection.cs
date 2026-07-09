@@ -73,7 +73,7 @@ public static class DependencyInjection
             var registry = sp.GetService<ISchemaRegistryClient>();
             return options.DefaultSerializer?.ToLowerInvariant() switch
             {
-                "avro" when registry is not null => new AvroMessageSerializer(registry),
+                "avro" when registry is not null => new AvroMessageSerializer(registry, options),
                 _ => new JsonMessageSerializer(),
             };
         });
