@@ -766,6 +766,91 @@ public sealed class KafkaConsumerHostTests
 }
 
 // ============================================================
+// ResiliencePipelines tests
+// ============================================================
+
+public sealed class ResiliencePipelinesTests
+{
+    [Fact]
+    public async Task ProducePipeline_ExecutesSuccessfully()
+    {
+        var opts = new HellnetKafkaOptions();
+        var pipeline = ResiliencePipelines.Produce(opts);
+        var result = await pipeline.ExecuteAsync(async _ => { await Task.CompletedTask; return "ok"; }, CancellationToken.None);
+        Assert.Equal("ok", result);
+    }
+
+    [Fact]
+    public async Task HandlerPipeline_ExecutesSuccessfully()
+    {
+        var opts = new HellnetKafkaOptions();
+        var pipeline = ResiliencePipelines.Handler(opts);
+        await pipeline.ExecuteAsync(_ => { return ValueTask.CompletedTask; }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task DeadLetterPipeline_ExecutesSuccessfully()
+    {
+        var opts = new HellnetKafkaOptions();
+        var pipeline = ResiliencePipelines.DeadLetter(opts);
+        await pipeline.ExecuteAsync(_ => { return ValueTask.CompletedTask; }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task SchemaRegistryPipeline_ExecutesSuccessfully()
+    {
+        var opts = new HellnetKafkaOptions();
+        var pipeline = ResiliencePipelines.SchemaRegistry(opts);
+        await pipeline.ExecuteAsync(_ => { return ValueTask.CompletedTask; }, CancellationToken.None);
+    }
+}
+
+// ============================================================
+// HellnetKafkaOptions resilience defaults tests
+// ============================================================
+
+public sealed class HellnetKafkaResilienceOptionsTests
+{
+    [Fact]
+    public void ResilienceDefaults_AreSane()
+    {
+        var opts = new HellnetKafkaOptions();
+        Assert.Equal(3, opts.MaxRetries);
+        Assert.Equal(200, opts.RetryDelayMs);
+        Assert.Equal(30_000, opts.RetryMaxDelayMs);
+        Assert.Equal(100, opts.RetryJitterMs);
+        Assert.Equal(30_000, opts.TimeoutProduceMs);
+        Assert.Equal(10_000, opts.TimeoutSchemaRegistryMs);
+        Assert.Equal(5, opts.CircuitBreakerFailureCount);
+        Assert.Equal(30_000, opts.CircuitBreakerDurationMs);
+    }
+}
+
+// ============================================================
+// KafkaConfigBuilder timeout tests
+// ============================================================
+
+public sealed class KafkaConfigBuilderTimeoutTests
+{
+    [Fact]
+    public void ProducerConfig_SetsTimeouts()
+    {
+        var opts = new HellnetKafkaOptions { TimeoutProduceMs = 15000 };
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        Assert.Equal(15000, config.MessageTimeoutMs);
+        Assert.Equal(15000, config.RequestTimeoutMs);
+    }
+
+    [Fact]
+    public void ConsumerConfig_SetsTimeouts()
+    {
+        var opts = new HellnetKafkaOptions { TimeoutProduceMs = 20000 };
+        var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "test-group");
+        Assert.Equal(20000, config.SessionTimeoutMs);
+    }
+}
+
+// ============================================================
 // Integration-style: RetryEngine via DI
 // ============================================================
 
