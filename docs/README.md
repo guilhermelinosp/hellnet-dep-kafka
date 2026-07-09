@@ -13,7 +13,7 @@ dotnet add package Hellnet.Kafka
 
 ```csharp
 // Program.cs — única linha
-builder.Services.AddHellnetKafkaWithDefaults();
+builder.Services.AddHellnetKafka();
 ```
 
 ```bash
@@ -76,7 +76,7 @@ using Hellnet.Kafka;
 using Hellnet.Kafka.Abstractions;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHellnetKafkaWithDefaults();
+builder.Services.AddHellnetKafka();
 builder.Services.AddTransient<IMessageHandler<OrderCreated>, OrderCreatedHandler>();
 
 var host = builder.Build();
@@ -108,7 +108,7 @@ await host.RunAsync();
 | `HELLNET_KAFKA_MAX_RETRIES` | `3` | Retries antes do DLQ |
 | `HELLNET_KAFKA_DEAD_LETTER_TOPIC` | `{topic}.dlq` | Tópico de dead-letter |
 
-**Nota**: Com `AddHellnetKafkaWithDefaults()`, apenas `HELLNET_KAFKA_CONSUMER_GROUP` e `HELLNET_KAFKA_SASL_PASSWORD` são obrigatórios por serviço.
+**Nota**: Com `AddHellnetKafka()`, apenas `HELLNET_KAFKA_CONSUMER_GROUP` e `HELLNET_KAFKA_SASL_PASSWORD` são obrigatórios por serviço.
 
 ### Config padrão (sem infra Hellnet)
 
