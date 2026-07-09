@@ -19,7 +19,7 @@ public sealed class AvroMessageSerializer : IMessageSerializer
     }
 
     public byte[] Serialize<TMessage>(TMessage message)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
     {
         var serializer = new AvroSerializer<TMessage>(_registry);
         return serializer.SerializeAsync(message, SerializationContext.Empty)
@@ -27,7 +27,7 @@ public sealed class AvroMessageSerializer : IMessageSerializer
     }
 
     public TMessage Deserialize<TMessage>(byte[] data)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
     {
         var deserializer = new AvroDeserializer<TMessage>(_registry);
         return deserializer.DeserializeAsync(data, false, SerializationContext.Empty)

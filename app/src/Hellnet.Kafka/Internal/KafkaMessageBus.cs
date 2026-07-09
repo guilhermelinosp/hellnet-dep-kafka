@@ -30,7 +30,7 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
 
     [ExcludeFromCodeCoverage]
     public async Task PublishAsync<TMessage>(TMessage message, CancellationToken ct = default)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
     {
         var topic = ResolveTopic(message);
         var data = _serializer.Serialize(message);
@@ -53,7 +53,7 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
 
     [ExcludeFromCodeCoverage]
     public async Task PublishBatchAsync<TMessage>(IEnumerable<TMessage> messages, CancellationToken ct = default)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
     {
         foreach (var message in messages)
         {
