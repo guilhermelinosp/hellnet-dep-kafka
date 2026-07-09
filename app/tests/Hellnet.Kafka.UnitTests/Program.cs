@@ -1,3 +1,5 @@
+using AutoFixture;
+using FluentAssertions;
 using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
 using Hellnet.Kafka.Internal;
@@ -5,6 +7,8 @@ using Hellnet.Kafka.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Hellnet.Kafka.UnitTests;
@@ -99,24 +103,25 @@ public sealed class KafkaEnvBinderTests : IDisposable
     public void Bind_UsesDefaults_WhenNoEnvSet()
     {
         var options = KafkaEnvBinder.Bind();
-        Assert.Equal("localhost:9092", options.Brokers);
-        Assert.Equal("json", options.DefaultSerializer);
-        Assert.True(options.AutoRegisterHandlers);
-        Assert.Equal(3, options.MaxRetries);
-        Assert.True(options.Idempotent);
-        Assert.Equal("all", options.Acks);
-        Assert.Equal("earliest", options.AutoOffsetReset);
-        Assert.Equal(Environment.MachineName, options.ClientId);
-        Assert.Equal("plaintext", options.SecurityProtocol);
-        Assert.Equal("https", options.SslEndpointIdentificationAlgorithm);
-        Assert.Null(options.SslCaLocation);
-        Assert.Equal("", options.TopicPrefix);
-        Assert.Equal("classic", options.GroupProtocol);
+        options.Brokers.Should().Be("localhost:9092");
+        options.DefaultSerializer.Should().Be("json");
+        options.AutoRegisterHandlers.Should().BeTrue();
+        options.MaxRetries.Should().Be(3);
+        options.Idempotent.Should().BeTrue();
+        options.Acks.Should().Be("all");
+        options.AutoOffsetReset.Should().Be("earliest");
+        options.ClientId.Should().Be(Environment.MachineName);
+        options.SecurityProtocol.Should().Be("plaintext");
+        options.SslEndpointIdentificationAlgorithm.Should().Be("https");
+        options.SslCaLocation.Should().BeNull();
+        options.TopicPrefix.Should().Be("");
+        options.GroupProtocol.Should().Be("classic");
     }
 
     [Fact]
     public void Bind_ReadsFromEnv()
     {
+        var fixture = new Fixture();
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_BROKERS", "kafka-1:9092,kafka-2:9092");
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_CONSUMER_GROUP", "my-service");
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_DEFAULT_SERIALIZER", "avro");
@@ -134,63 +139,63 @@ public sealed class KafkaEnvBinderTests : IDisposable
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_GROUP_PROTOCOL", "consumer");
 
         var options = KafkaEnvBinder.Bind();
-        Assert.Equal("kafka-1:9092,kafka-2:9092", options.Brokers);
-        Assert.Equal("my-service", options.ConsumerGroup);
-        Assert.Equal("avro", options.DefaultSerializer);
-        Assert.False(options.AutoRegisterHandlers);
-        Assert.Equal(5, options.MaxRetries);
-        Assert.False(options.Idempotent);
-        Assert.Equal("leader", options.Acks);
-        Assert.Equal("my-client", options.ClientId);
-        Assert.Equal("PLAIN", options.SaslMechanism);
-        Assert.Equal("sasl_ssl", options.SecurityProtocol);
-        Assert.Equal("/etc/kafka/ca.crt", options.SslCaLocation);
-        Assert.Equal("", options.SslEndpointIdentificationAlgorithm);
-        Assert.Equal("http://registry:8081", options.SchemaRegistryUrl);
-        Assert.Equal("hellnet", options.TopicPrefix);
-        Assert.Equal("consumer", options.GroupProtocol);
+        options.Brokers.Should().Be("kafka-1:9092,kafka-2:9092");
+        options.ConsumerGroup.Should().Be("my-service");
+        options.DefaultSerializer.Should().Be("avro");
+        options.AutoRegisterHandlers.Should().BeFalse();
+        options.MaxRetries.Should().Be(5);
+        options.Idempotent.Should().BeFalse();
+        options.Acks.Should().Be("leader");
+        options.ClientId.Should().Be("my-client");
+        options.SaslMechanism.Should().Be("PLAIN");
+        options.SecurityProtocol.Should().Be("sasl_ssl");
+        options.SslCaLocation.Should().Be("/etc/kafka/ca.crt");
+        options.SslEndpointIdentificationAlgorithm.Should().Be("");
+        options.SchemaRegistryUrl.Should().Be("http://registry:8081");
+        options.TopicPrefix.Should().Be("hellnet");
+        options.GroupProtocol.Should().Be("consumer");
     }
 
     [Fact]
     public void EnvBool_ReturnsDefault_WhenNotSet()
     {
-        Assert.True(KafkaEnvBinder.EnvBool("NONEXISTENT", true));
-        Assert.False(KafkaEnvBinder.EnvBool("NONEXISTENT", false));
+        KafkaEnvBinder.EnvBool("NONEXISTENT", true).Should().BeTrue();
+        KafkaEnvBinder.EnvBool("NONEXISTENT", false).Should().BeFalse();
     }
 
     [Fact]
     public void EnvBool_ParsesCorrectly()
     {
         Environment.SetEnvironmentVariable("TEST_BOOL", "true");
-        Assert.True(KafkaEnvBinder.EnvBool("TEST_BOOL", false));
+        KafkaEnvBinder.EnvBool("TEST_BOOL", false).Should().BeTrue();
         Environment.SetEnvironmentVariable("TEST_BOOL", "false");
-        Assert.False(KafkaEnvBinder.EnvBool("TEST_BOOL", true));
+        KafkaEnvBinder.EnvBool("TEST_BOOL", true).Should().BeFalse();
     }
 
     [Fact]
     public void EnvInt_ReturnsDefault_WhenNotSet()
     {
-        Assert.Equal(42, KafkaEnvBinder.EnvInt("NONEXISTENT", 42));
+        KafkaEnvBinder.EnvInt("NONEXISTENT", 42).Should().Be(42);
     }
 
     [Fact]
     public void EnvInt_ParsesCorrectly()
     {
         Environment.SetEnvironmentVariable("TEST_INT", "99");
-        Assert.Equal(99, KafkaEnvBinder.EnvInt("TEST_INT", 0));
+        KafkaEnvBinder.EnvInt("TEST_INT", 0).Should().Be(99);
     }
 
     [Fact]
     public void Env_ReturnsFallback_WhenNotSet()
     {
-        Assert.Equal("fallback", KafkaEnvBinder.Env("NONEXISTENT", "fallback"));
+        KafkaEnvBinder.Env("NONEXISTENT", "fallback").Should().Be("fallback");
     }
 
     [Fact]
     public void EnvOrNull_ReturnsFallback_WhenNotSet()
     {
-        Assert.Null(KafkaEnvBinder.EnvOrNull("NONEXISTENT", null));
-        Assert.Equal("fb", KafkaEnvBinder.EnvOrNull("NONEXISTENT", "fb"));
+        KafkaEnvBinder.EnvOrNull("NONEXISTENT", null).Should().BeNull();
+        KafkaEnvBinder.EnvOrNull("NONEXISTENT", "fb").Should().Be("fb");
     }
 }
 
@@ -204,16 +209,16 @@ public sealed class HellnetKafkaOptionsTests
     public void Defaults_AreSane()
     {
         var opts = new HellnetKafkaOptions();
-        Assert.Equal("localhost:9092", opts.Brokers);
-        Assert.Equal("json", opts.DefaultSerializer);
-        Assert.True(opts.AutoRegisterHandlers);
-        Assert.True(opts.Idempotent);
-        Assert.Equal("earliest", opts.AutoOffsetReset);
-        Assert.NotNull(opts.ClientId);
-        Assert.Equal("plaintext", opts.SecurityProtocol);
-        Assert.Equal("https", opts.SslEndpointIdentificationAlgorithm);
-        Assert.Equal("", opts.TopicPrefix);
-        Assert.Equal("classic", opts.GroupProtocol);
+        opts.Brokers.Should().Be("localhost:9092");
+        opts.DefaultSerializer.Should().Be("json");
+        opts.AutoRegisterHandlers.Should().BeTrue();
+        opts.Idempotent.Should().BeTrue();
+        opts.AutoOffsetReset.Should().Be("earliest");
+        opts.ClientId.Should().NotBeNullOrEmpty();
+        opts.SecurityProtocol.Should().Be("plaintext");
+        opts.SslEndpointIdentificationAlgorithm.Should().Be("https");
+        opts.TopicPrefix.Should().Be("");
+        opts.GroupProtocol.Should().Be("classic");
     }
 }
 
@@ -227,16 +232,16 @@ public sealed class HellnetKafkaDefaultsTests
     public void Create_SetsInfraDefaults()
     {
         var opts = HellnetKafkaDefaults.Create();
-        Assert.Equal("kafka.hellnet.com.br:9094", opts.Brokers);
-        Assert.Equal("sasl_ssl", opts.SecurityProtocol);
-        Assert.Equal("SCRAM-SHA-512", opts.SaslMechanism);
-        Assert.Equal("hellnet-app", opts.SaslUsername);
-        Assert.Equal("hellnet2026", opts.SaslPassword);
-        Assert.Equal("", opts.SslEndpointIdentificationAlgorithm);
-        Assert.Equal("avro", opts.DefaultSerializer);
-        Assert.Equal("https://schema.hellnet.com.br", opts.SchemaRegistryUrl);
-        Assert.Equal("hellnet", opts.TopicPrefix);
-        Assert.True(opts.Idempotent);
+        opts.Brokers.Should().Be("kafka.hellnet.com.br:9094");
+        opts.SecurityProtocol.Should().Be("sasl_ssl");
+        opts.SaslMechanism.Should().Be("SCRAM-SHA-512");
+        opts.SaslUsername.Should().Be("hellnet-app");
+        opts.SaslPassword.Should().Be("hellnet2026");
+        opts.SslEndpointIdentificationAlgorithm.Should().Be("");
+        opts.DefaultSerializer.Should().Be("avro");
+        opts.SchemaRegistryUrl.Should().Be("https://schema.hellnet.com.br");
+        opts.TopicPrefix.Should().Be("hellnet");
+        opts.Idempotent.Should().BeTrue();
     }
 }
 
@@ -271,9 +276,9 @@ public sealed class KafkaEnvBinderWithBaseTests : IDisposable
         };
 
         var result = KafkaEnvBinder.Bind(baseOpts);
-        Assert.Equal("base:9092", result.Brokers);
-        Assert.Equal("SCRAM-SHA-512", result.SaslMechanism);
-        Assert.Equal("baseprefix", result.TopicPrefix);
+        result.Brokers.Should().Be("base:9092");
+        result.SaslMechanism.Should().Be("SCRAM-SHA-512");
+        result.TopicPrefix.Should().Be("baseprefix");
     }
 
     [Fact]
@@ -289,17 +294,17 @@ public sealed class KafkaEnvBinderWithBaseTests : IDisposable
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_TOPIC_PREFIX", "envprefix");
 
         var result = KafkaEnvBinder.Bind(baseOpts);
-        Assert.Equal("env:9092", result.Brokers);
-        Assert.Equal("envprefix", result.TopicPrefix);
+        result.Brokers.Should().Be("env:9092");
+        result.TopicPrefix.Should().Be("envprefix");
     }
 
     [Fact]
     public void BindWithDefaults_SetsInfraValues()
     {
         var result = KafkaEnvBinder.Bind(HellnetKafkaDefaults.Create());
-        Assert.Equal("kafka.hellnet.com.br:9094", result.Brokers);
-        Assert.Equal("sasl_ssl", result.SecurityProtocol);
-        Assert.Equal("avro", result.DefaultSerializer);
+        result.Brokers.Should().Be("kafka.hellnet.com.br:9094");
+        result.SecurityProtocol.Should().Be("sasl_ssl");
+        result.DefaultSerializer.Should().Be("avro");
     }
 }
 
@@ -314,7 +319,7 @@ public sealed class KafkaConfigBuilderTests
     {
         var opts = new HellnetKafkaOptions();
         var config = KafkaConfigBuilder.BuildProducerConfig(opts);
-        Assert.Equal(Confluent.Kafka.SecurityProtocol.Plaintext, config.SecurityProtocol);
+        config.SecurityProtocol.Should().Be(Confluent.Kafka.SecurityProtocol.Plaintext);
     }
 
     [Fact]
@@ -331,12 +336,12 @@ public sealed class KafkaConfigBuilderTests
         };
 
         var config = KafkaConfigBuilder.BuildProducerConfig(opts);
-        Assert.Equal(Confluent.Kafka.SecurityProtocol.SaslSsl, config.SecurityProtocol);
-        Assert.Equal(Confluent.Kafka.SaslMechanism.ScramSha512, config.SaslMechanism);
-        Assert.Equal("user1", config.SaslUsername);
-        Assert.Equal("pass1", config.SaslPassword);
-        Assert.Equal("/etc/ca.pem", config.SslCaLocation);
-        Assert.Equal(Confluent.Kafka.SslEndpointIdentificationAlgorithm.None, config.SslEndpointIdentificationAlgorithm);
+        config.SecurityProtocol.Should().Be(Confluent.Kafka.SecurityProtocol.SaslSsl);
+        config.SaslMechanism.Should().Be(Confluent.Kafka.SaslMechanism.ScramSha512);
+        config.SaslUsername.Should().Be("user1");
+        config.SaslPassword.Should().Be("pass1");
+        config.SslCaLocation.Should().Be("/etc/ca.pem");
+        config.SslEndpointIdentificationAlgorithm.Should().Be(Confluent.Kafka.SslEndpointIdentificationAlgorithm.None);
     }
 
     [Fact]
@@ -348,7 +353,7 @@ public sealed class KafkaConfigBuilderTests
             SslCaLocation = "/etc/ca.pem",
         };
         var config = KafkaConfigBuilder.BuildProducerConfig(opts);
-        Assert.Equal(Confluent.Kafka.SecurityProtocol.Ssl, config.SecurityProtocol);
+        config.SecurityProtocol.Should().Be(Confluent.Kafka.SecurityProtocol.Ssl);
     }
 
     [Fact]
@@ -356,7 +361,7 @@ public sealed class KafkaConfigBuilderTests
     {
         var opts = new HellnetKafkaOptions();
         var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "my-group");
-        Assert.Equal(Confluent.Kafka.GroupProtocol.Classic, config.GroupProtocol);
+        config.GroupProtocol.Should().Be(Confluent.Kafka.GroupProtocol.Classic);
     }
 
     [Fact]
@@ -364,7 +369,7 @@ public sealed class KafkaConfigBuilderTests
     {
         var opts = new HellnetKafkaOptions { GroupProtocol = "consumer" };
         var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "my-group");
-        Assert.Equal(Confluent.Kafka.GroupProtocol.Consumer, config.GroupProtocol);
+        config.GroupProtocol.Should().Be(Confluent.Kafka.GroupProtocol.Consumer);
     }
 
     [Fact]
@@ -372,7 +377,7 @@ public sealed class KafkaConfigBuilderTests
     {
         var opts = new HellnetKafkaOptions { ClientId = "my-app" };
         var config = KafkaConfigBuilder.BuildProducerConfig(opts, "dlq");
-        Assert.Equal("my-app.dlq", config.ClientId);
+        config.ClientId.Should().Be("my-app.dlq");
     }
 }
 
@@ -389,13 +394,12 @@ public sealed class JsonMessageSerializerTests
     {
         var message = new TestMessage { Data = "hello-kafka" };
         var bytes = _serializer.Serialize(message);
-        Assert.NotNull(bytes);
-        Assert.True(bytes.Length > 0);
+        bytes.Should().NotBeNullOrEmpty();
 
         var deserialized = _serializer.Deserialize<TestMessage>(bytes);
-        Assert.NotNull(deserialized);
-        Assert.Equal("hello-kafka", deserialized.Data);
-        Assert.Equal("test.message.v1", deserialized.MessageType);
+        deserialized.Should().NotBeNull();
+        deserialized.Data.Should().Be("hello-kafka");
+        deserialized.MessageType.Should().Be("test.message.v1");
     }
 
     [Fact]
@@ -404,8 +408,8 @@ public sealed class JsonMessageSerializerTests
         var message = new TestMessage { Data = "test" };
         var bytes = _serializer.Serialize(message);
         var json = System.Text.Encoding.UTF8.GetString(bytes);
-        Assert.Contains("message_type", json); // snake_case
-        Assert.Contains("test.message.v1", json);
+        json.Should().Contain("message_type"); // snake_case
+        json.Should().Contain("test.message.v1");
     }
 }
 
@@ -432,12 +436,12 @@ public sealed class MessageContextTests
             new Confluent.Kafka.Offset(42),
             headers);
 
-        Assert.Equal("msg-123", ctx.MessageId);
-        Assert.Equal("test.topic", ctx.Topic);
-        Assert.Equal(3, ctx.Partition);
-        Assert.Equal(42L, ctx.Offset);
-        Assert.Equal(2, ctx.DeliveryAttempt);
-        Assert.Equal("custom-value", ctx.Headers["custom-key"]);
+        ctx.MessageId.Should().Be("msg-123");
+        ctx.Topic.Should().Be("test.topic");
+        ctx.Partition.Should().Be(3);
+        ctx.Offset.Should().Be(42L);
+        ctx.DeliveryAttempt.Should().Be(2);
+        ctx.Headers["custom-key"].Should().Be("custom-value");
     }
 
     [Fact]
@@ -446,8 +450,8 @@ public sealed class MessageContextTests
         var ctx = new MessageContext("id", "topic", DateTime.UtcNow,
             new Confluent.Kafka.Partition(0), new Confluent.Kafka.Offset(0), null);
 
-        Assert.Empty(ctx.Headers);
-        Assert.Equal(0, ctx.DeliveryAttempt);
+        ctx.Headers.Should().BeEmpty();
+        ctx.DeliveryAttempt.Should().Be(0);
     }
 
     [Fact]
@@ -457,7 +461,7 @@ public sealed class MessageContextTests
         var ctx = new MessageContext("id", "topic", DateTime.UtcNow,
             new Confluent.Kafka.Partition(0), new Confluent.Kafka.Offset(0), headers);
 
-        Assert.Equal(0, ctx.DeliveryAttempt);
+        ctx.DeliveryAttempt.Should().Be(0);
     }
 }
 
@@ -474,13 +478,13 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 3 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = new TestHandler();
+        var handler = Substitute.For<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
         var message = new TestMessage();
 
         await engine.ExecuteAsync(handler, message, ctx, CancellationToken.None);
 
-        Assert.Equal(1, handler.InvocationCount);
+        await handler.Received(1).HandleAsync(message, ctx, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -488,13 +492,23 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 5 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = new FailingHandler(failUntil: 2); // fail twice, succeed on 3rd
+        var handler = Substitute.For<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
         var message = new TestMessage();
+        var callCount = 0;
+
+        handler.HandleAsync(message, ctx, Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask)
+            .AndDoes(_ =>
+            {
+                callCount++;
+                if (callCount <= 2)
+                    throw new InvalidOperationException($"Simulated failure #{callCount}");
+            });
 
         await engine.ExecuteAsync(handler, message, ctx, CancellationToken.None);
 
-        Assert.Equal(3, handler.InvocationCount);
+        callCount.Should().Be(3);
     }
 
     [Fact]
@@ -502,15 +516,16 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 2 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-        var handler = new FailingHandler(failUntil: 99); // always fails
+        var handler = Substitute.For<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
         var message = new TestMessage();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => engine.ExecuteAsync(handler, message, ctx, CancellationToken.None));
+        handler.HandleAsync(message, ctx, Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object?>(new InvalidOperationException("fail")));
 
-        Assert.Contains("Simulated failure", ex.Message);
-        Assert.Equal(2, handler.InvocationCount); // maxRetries = 2 attempts
+        await engine.Invoking(e => e.ExecuteAsync(handler, message, ctx, CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>();
+        await handler.Received(2).HandleAsync(Arg.Any<TestMessage>(), Arg.Any<IMessageContext>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -518,26 +533,20 @@ public sealed class RetryEngineTests
     {
         var options = new HellnetKafkaOptions { MaxRetries = 3 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
-
+        var handler = Substitute.For<IMessageHandler<TestMessage>>();
         var ctx = CreateContext();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            var handler2 = new ThrowingCancellationHandler();
-            await engine.ExecuteAsync(handler2, new TestMessage(), ctx, CancellationToken.None);
-        });
+        handler.HandleAsync(Arg.Any<TestMessage>(), Arg.Any<IMessageContext>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object?>(new OperationCanceledException()));
+
+        await engine.Invoking(e => e.ExecuteAsync(handler, new TestMessage(), ctx, CancellationToken.None))
+            .Should().ThrowAsync<OperationCanceledException>();
     }
 
     private static IMessageContext CreateContext()
     {
         return new MessageContext("test-id", "test.topic", DateTime.UtcNow,
             new Confluent.Kafka.Partition(0), new Confluent.Kafka.Offset(0), null);
-    }
-
-    private sealed class ThrowingCancellationHandler : IMessageHandler<TestMessage>
-    {
-        public Task HandleAsync(TestMessage message, IMessageContext context, CancellationToken ct)
-            => throw new OperationCanceledException();
     }
 }
 
@@ -556,11 +565,11 @@ public sealed class DependencyInjectionTests
 
         var sp = services.BuildServiceProvider();
 
-        Assert.NotNull(sp.GetRequiredService<HellnetKafkaOptions>());
-        Assert.NotNull(sp.GetRequiredService<IMessageSerializer>());
-        Assert.NotNull(sp.GetRequiredService<IMessageBus>());
-        Assert.NotNull(sp.GetRequiredService<RetryEngine>());
-        Assert.NotNull(sp.GetRequiredService<DeadLetterService>());
+        sp.GetRequiredService<HellnetKafkaOptions>().Should().NotBeNull();
+        sp.GetRequiredService<IMessageSerializer>().Should().NotBeNull();
+        sp.GetRequiredService<IMessageBus>().Should().NotBeNull();
+        sp.GetRequiredService<RetryEngine>().Should().NotBeNull();
+        sp.GetRequiredService<DeadLetterService>().Should().NotBeNull();
     }
 
     [Fact]
@@ -577,8 +586,7 @@ public sealed class DependencyInjectionTests
 
         var sp = services.BuildServiceProvider();
 
-        var resolved = sp.GetRequiredService<HellnetKafkaOptions>();
-        Assert.Equal("test:9092", resolved.Brokers);
+        sp.GetRequiredService<HellnetKafkaOptions>().Brokers.Should().Be("test:9092");
     }
 
     [Fact]
@@ -586,7 +594,7 @@ public sealed class DependencyInjectionTests
     {
         var services = new ServiceCollection();
         var result = services.AddHellnetKafka();
-        Assert.Same(services, result);
+        result.Should().BeSameAs(services);
     }
 
     [Fact]
@@ -594,7 +602,7 @@ public sealed class DependencyInjectionTests
     {
         var services = new ServiceCollection();
         var result = services.AddHellnetKafka(new HellnetKafkaOptions());
-        Assert.Same(services, result);
+        result.Should().BeSameAs(services);
     }
 
     [Fact]
@@ -610,7 +618,7 @@ public sealed class DependencyInjectionTests
 
         var sp = services.BuildServiceProvider();
         var handler = sp.GetService<IMessageHandler<TestMessage>>();
-        Assert.NotNull(handler);
+        handler.Should().NotBeNull();
     }
 
     [Fact]
@@ -624,7 +632,7 @@ public sealed class DependencyInjectionTests
 
         var sp = services.BuildServiceProvider();
         var handler = sp.GetService<IMessageHandler<TestMessage>>();
-        Assert.Null(handler);
+        handler.Should().BeNull();
     }
 
     [Fact]
@@ -633,8 +641,7 @@ public sealed class DependencyInjectionTests
         var services = new ServiceCollection();
         services.AddHellnetKafka(new HellnetKafkaOptions { AutoRegisterHandlers = false });
         var sp = services.BuildServiceProvider();
-        var serializer = sp.GetRequiredService<IMessageSerializer>();
-        Assert.IsType<JsonMessageSerializer>(serializer);
+        sp.GetRequiredService<IMessageSerializer>().Should().BeOfType<JsonMessageSerializer>();
     }
 
     [Fact]
@@ -644,10 +651,10 @@ public sealed class DependencyInjectionTests
         services.AddHellnetKafka();
         var sp = services.BuildServiceProvider();
         var opts = sp.GetRequiredService<HellnetKafkaOptions>();
-        Assert.Equal("kafka.hellnet.com.br:9094", opts.Brokers);
-        Assert.Equal("sasl_ssl", opts.SecurityProtocol);
-        Assert.Equal("avro", opts.DefaultSerializer);
-        Assert.Equal("hellnet", opts.TopicPrefix);
+        opts.Brokers.Should().Be("kafka.hellnet.com.br:9094");
+        opts.SecurityProtocol.Should().Be("sasl_ssl");
+        opts.DefaultSerializer.Should().Be("avro");
+        opts.TopicPrefix.Should().Be("hellnet");
     }
 }
 
@@ -665,7 +672,7 @@ public sealed class KafkaMessageBusTests
         var serializer = new JsonMessageSerializer();
 
         await using var bus = new KafkaMessageBus(options, serializer, logger);
-        Assert.NotNull(bus);
+        bus.Should().NotBeNull();
     }
 
     [Fact]
@@ -677,8 +684,7 @@ public sealed class KafkaMessageBusTests
         var bus = new KafkaMessageBus(options, serializer, logger);
 
         var msg = new TestMessage();
-        var topic = bus.ResolveTopic(msg);
-        Assert.Equal("test.message.v1", topic);
+        bus.ResolveTopic(msg).Should().Be("test.message.v1");
 
         bus.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
@@ -692,8 +698,7 @@ public sealed class KafkaMessageBusTests
         var bus = new KafkaMessageBus(options, serializer, logger);
 
         var msg = new TestMessage();
-        var topic = bus.ResolveTopic(msg);
-        Assert.Equal("hellnet.test.message.v1", topic);
+        bus.ResolveTopic(msg).Should().Be("hellnet.test.message.v1");
 
         bus.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
@@ -713,7 +718,7 @@ public sealed class DeadLetterServiceTests
         var serializer = new JsonMessageSerializer();
 
         await using var service = new DeadLetterService(options, serializer, logger);
-        Assert.NotNull(service);
+        service.Should().NotBeNull();
     }
 }
 
@@ -733,35 +738,27 @@ public sealed class KafkaConsumerHostTests
         var logger = NullLogger<KafkaConsumerHost>.Instance;
 
         var host = new KafkaConsumerHost(options, sp, logger);
-        Assert.NotNull(host);
+        host.Should().NotBeNull();
     }
 
     [Fact]
     public void DiscoverHandlers_FindsTestHandler()
     {
-        var options = new HellnetKafkaOptions { AutoRegisterHandlers = true };
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var sp = services.BuildServiceProvider();
-        var logger = NullLogger<KafkaConsumerHost>.Instance;
-
-        var host = new KafkaConsumerHost(options, sp, logger);
         var handlers = KafkaConsumerHost.DiscoverHandlers();
-        Assert.Contains(typeof(TestHandler), handlers);
+        handlers.Should().Contain(typeof(TestHandler));
     }
 
     [Fact]
     public void DiscoverHandlers_ReturnsHandlers_RegardlessOfOption()
     {
         var handlers = KafkaConsumerHost.DiscoverHandlers();
-        Assert.Contains(typeof(TestHandler), handlers);
+        handlers.Should().Contain(typeof(TestHandler));
     }
 
     [Fact]
     public void ResolveTopicFromMessageType_UsesMessageTypeProperty()
     {
-        var topic = KafkaConsumerHost.ResolveTopicFromMessageType(typeof(TestMessage));
-        Assert.Equal("test.message.v1", topic);
+        KafkaConsumerHost.ResolveTopicFromMessageType(typeof(TestMessage)).Should().Be("test.message.v1");
     }
 }
 
@@ -777,7 +774,7 @@ public sealed class ResiliencePipelinesTests
         var opts = new HellnetKafkaOptions();
         var pipeline = ResiliencePipelines.Produce(opts);
         var result = await pipeline.ExecuteAsync(async _ => { await Task.CompletedTask; return "ok"; }, CancellationToken.None);
-        Assert.Equal("ok", result);
+        result.Should().Be("ok");
     }
 
     [Fact]
@@ -815,14 +812,14 @@ public sealed class HellnetKafkaResilienceOptionsTests
     public void ResilienceDefaults_AreSane()
     {
         var opts = new HellnetKafkaOptions();
-        Assert.Equal(3, opts.MaxRetries);
-        Assert.Equal(200, opts.RetryDelayMs);
-        Assert.Equal(30_000, opts.RetryMaxDelayMs);
-        Assert.Equal(100, opts.RetryJitterMs);
-        Assert.Equal(30_000, opts.TimeoutProduceMs);
-        Assert.Equal(10_000, opts.TimeoutSchemaRegistryMs);
-        Assert.Equal(5, opts.CircuitBreakerFailureCount);
-        Assert.Equal(30_000, opts.CircuitBreakerDurationMs);
+        opts.MaxRetries.Should().Be(3);
+        opts.RetryDelayMs.Should().Be(200);
+        opts.RetryMaxDelayMs.Should().Be(30_000);
+        opts.RetryJitterMs.Should().Be(100);
+        opts.TimeoutProduceMs.Should().Be(30_000);
+        opts.TimeoutSchemaRegistryMs.Should().Be(10_000);
+        opts.CircuitBreakerFailureCount.Should().Be(5);
+        opts.CircuitBreakerDurationMs.Should().Be(30_000);
     }
 }
 
@@ -837,8 +834,8 @@ public sealed class KafkaConfigBuilderTimeoutTests
     {
         var opts = new HellnetKafkaOptions { TimeoutProduceMs = 15000 };
         var config = KafkaConfigBuilder.BuildProducerConfig(opts);
-        Assert.Equal(15000, config.MessageTimeoutMs);
-        Assert.Equal(15000, config.RequestTimeoutMs);
+        config.MessageTimeoutMs.Should().Be(15000);
+        config.RequestTimeoutMs.Should().Be(15000);
     }
 
     [Fact]
@@ -846,7 +843,7 @@ public sealed class KafkaConfigBuilderTimeoutTests
     {
         var opts = new HellnetKafkaOptions { TimeoutProduceMs = 20000 };
         var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "test-group");
-        Assert.Equal(20000, config.SessionTimeoutMs);
+        config.SessionTimeoutMs.Should().Be(20000);
     }
 }
 
@@ -870,6 +867,6 @@ public sealed class RetryEngineDiTests
 
         var sp = services.BuildServiceProvider();
         var engine = sp.GetRequiredService<RetryEngine>();
-        Assert.NotNull(engine);
+        engine.Should().NotBeNull();
     }
 }
