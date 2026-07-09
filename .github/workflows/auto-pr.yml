@@ -6,6 +6,28 @@ on:
       - 'feat/**'
       - 'fix/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   create-pr:
-    uses: guilhermelinosp/ci-templates/.github/workflows/auto-pr.yml@main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          echo "Branch: $BRANCH"
+          if [ "$BRANCH" = "main" ]; then exit 0; fi
+          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING ja existe"
+            exit 0
+          fi
+          TITLE=$(git log --format="%s" origin/main..HEAD 2>/dev/null | tail -1 || echo "chore: auto PR from $BRANCH")
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "Auto PR from \`$BRANCH\`." 2>/dev/null || true

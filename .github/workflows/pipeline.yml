@@ -1,4 +1,4 @@
-name: pipeline
+name: CI
 
 on:
   push:
@@ -10,25 +10,13 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-build.yml@main
-    with:
-      runner: ubuntu-latest
-      version: "0.0.0"
-
-  release:
-    if: github.ref == 'refs/heads/main'
-    needs: [test]
-    uses: guilhermelinosp/ci-templates/.github/workflows/release.yml@main
-    secrets: inherit
-    with:
-      runner: ubuntu-latest
-
-  publish:
-    if: github.ref == 'refs/heads/main'
-    needs: [release]
-    uses: guilhermelinosp/ci-templates/.github/workflows/dotnet-push.yml@main
-    secrets: inherit
-    with:
-      runner: ubuntu-latest
-      version: ${{ needs.release.outputs.version }}
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore app/Hellnet.Kafka.slnx
+      - run: dotnet build app/Hellnet.Kafka.slnx --configuration Release --no-restore
+      - run: dotnet test app/Hellnet.Kafka.slnx --configuration Release --no-build --verbosity normal
