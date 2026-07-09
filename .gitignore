@@ -35,3 +35,4 @@ coverage/
 coverage.json
 report-kafka-infra*
 *gateway*.yaml
+coverage.xml

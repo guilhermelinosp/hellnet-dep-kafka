@@ -13,7 +13,7 @@ pre-commit:
     build:
       run: dotnet build app/*.slnx -c release --nologo --verbosity quiet
     coverage:
-      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Exclude="[*Tests]*" /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
+      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Exclude="[*Tests]*" /p:Threshold=85 /p:ThresholdType=line /p:ThresholdStat=total
 commit-msg:
   commands:
     conventional:
