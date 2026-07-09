@@ -33,3 +33,5 @@ kafka-tls*.yaml
 coverage/
 *.opencover.xml
 coverage.json
+report-kafka-infra*
+*gateway*.yaml

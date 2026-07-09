@@ -9,5 +9,5 @@ public interface IMessage
     /// Logical message type identifier used for topic routing and schema resolution.
     /// Convention: "{domain}.{action}.v{version}" (e.g., "order.created.v1").
     /// </summary>
-    string MessageType { get; }
+    public string MessageType { get; }
 }

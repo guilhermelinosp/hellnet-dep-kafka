@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+
 using Hellnet.Kafka.Abstractions;
 
 namespace Hellnet.Kafka.Internal;

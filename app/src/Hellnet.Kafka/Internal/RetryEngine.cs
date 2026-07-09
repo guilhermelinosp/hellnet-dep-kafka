@@ -1,4 +1,5 @@
 using Hellnet.Kafka.Abstractions;
+
 using Microsoft.Extensions.Logging;
 
 namespace Hellnet.Kafka.Internal;

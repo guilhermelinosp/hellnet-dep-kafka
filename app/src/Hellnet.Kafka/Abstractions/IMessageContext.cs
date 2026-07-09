@@ -5,11 +5,11 @@ namespace Hellnet.Kafka.Abstractions;
 /// </summary>
 public interface IMessageContext
 {
-    string MessageId { get; }
-    string Topic { get; }
-    DateTime Timestamp { get; }
-    int Partition { get; }
-    long Offset { get; }
-    int DeliveryAttempt { get; }
-    IReadOnlyDictionary<string, string> Headers { get; }
+    public string MessageId { get; }
+    public string Topic { get; }
+    public DateTime Timestamp { get; }
+    public int Partition { get; }
+    public long Offset { get; }
+    public int DeliveryAttempt { get; }
+    public IReadOnlyDictionary<string, string> Headers { get; }
 }
