@@ -10,7 +10,7 @@ internal static class HellnetKafkaDefaults
     public static HellnetKafkaOptions Create() => new()
     {
         // Broker
-        Brokers = "192.168.1.254:9094",
+        Brokers = "kafka.hellnet.com.br:9094",
 
         // SASL/SSL
         SecurityProtocol = "sasl_ssl",
@@ -21,7 +21,7 @@ internal static class HellnetKafkaDefaults
 
         // Schema Registry
         DefaultSerializer = "avro",
-        SchemaRegistryUrl = "http://192.168.1.254:8085",
+        SchemaRegistryUrl = "https://schema.hellnet.com.br",
 
         // Topic
         TopicPrefix = "hellnet",

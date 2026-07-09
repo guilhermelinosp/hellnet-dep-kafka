@@ -227,14 +227,14 @@ public sealed class HellnetKafkaDefaultsTests
     public void Create_SetsInfraDefaults()
     {
         var opts = HellnetKafkaDefaults.Create();
-        Assert.Equal("192.168.1.254:9094", opts.Brokers);
+        Assert.Equal("kafka.hellnet.com.br:9094", opts.Brokers);
         Assert.Equal("sasl_ssl", opts.SecurityProtocol);
         Assert.Equal("SCRAM-SHA-512", opts.SaslMechanism);
         Assert.Equal("hellnet-app", opts.SaslUsername);
         Assert.Equal("hellnet2026", opts.SaslPassword);
         Assert.Equal("", opts.SslEndpointIdentificationAlgorithm);
         Assert.Equal("avro", opts.DefaultSerializer);
-        Assert.Equal("http://192.168.1.254:8085", opts.SchemaRegistryUrl);
+        Assert.Equal("https://schema.hellnet.com.br", opts.SchemaRegistryUrl);
         Assert.Equal("hellnet", opts.TopicPrefix);
         Assert.True(opts.Idempotent);
     }
@@ -297,7 +297,7 @@ public sealed class KafkaEnvBinderWithBaseTests : IDisposable
     public void BindWithDefaults_SetsInfraValues()
     {
         var result = KafkaEnvBinder.Bind(HellnetKafkaDefaults.Create());
-        Assert.Equal("192.168.1.254:9094", result.Brokers);
+        Assert.Equal("kafka.hellnet.com.br:9094", result.Brokers);
         Assert.Equal("sasl_ssl", result.SecurityProtocol);
         Assert.Equal("avro", result.DefaultSerializer);
     }
@@ -644,7 +644,7 @@ public sealed class DependencyInjectionTests
         services.AddHellnetKafkaWithDefaults();
         var sp = services.BuildServiceProvider();
         var opts = sp.GetRequiredService<HellnetKafkaOptions>();
-        Assert.Equal("192.168.1.254:9094", opts.Brokers);
+        Assert.Equal("kafka.hellnet.com.br:9094", opts.Brokers);
         Assert.Equal("sasl_ssl", opts.SecurityProtocol);
         Assert.Equal("avro", opts.DefaultSerializer);
         Assert.Equal("hellnet", opts.TopicPrefix);
