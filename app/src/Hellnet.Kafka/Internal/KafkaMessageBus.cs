@@ -5,6 +5,7 @@ using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
 using Hellnet.Kafka.Serialization;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Hellnet.Kafka.Internal;
 
@@ -14,6 +15,7 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
     private readonly IMessageSerializer _serializer;
     private readonly HellnetKafkaOptions _options;
     private readonly ILogger<KafkaMessageBus> _logger;
+    private readonly ResiliencePipeline _pipeline;
 
     public KafkaMessageBus(
         HellnetKafkaOptions options,
@@ -23,6 +25,7 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
         _options = options;
         _serializer = serializer;
         _logger = logger;
+        _pipeline = ResiliencePipelines.Produce(options);
 
         _producer = new ProducerBuilder<string, byte[]>(
             KafkaConfigBuilder.BuildProducerConfig(options)).Build();
@@ -35,20 +38,23 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
         var topic = ResolveTopic(message);
         var data = _serializer.Serialize(message);
 
-        var result = await _producer.ProduceAsync(topic, new Message<string, byte[]>
+        await _pipeline.ExecuteAsync(async cancel =>
         {
-            Key = message.MessageType,
-            Value = data,
-            Headers = new Headers
+            var result = await _producer.ProduceAsync(topic, new Message<string, byte[]>
             {
-                new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
-                new("content.type", Encoding.UTF8.GetBytes(_options.DefaultSerializer)),
-            },
-        }, ct);
+                Key = message.MessageType,
+                Value = data,
+                Headers = new Headers
+                {
+                    new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
+                    new("content.type", Encoding.UTF8.GetBytes(_options.DefaultSerializer)),
+                },
+            }, cancel);
 
-        _logger.LogDebug(
-            "Published {MessageType} to {Topic} [{Partition}] @{Offset}",
-            message.MessageType, topic, result.Partition, result.Offset);
+            _logger.LogDebug(
+                "Published {MessageType} to {Topic} [{Partition}] @{Offset}",
+                message.MessageType, topic, result.Partition, result.Offset);
+        }, ct);
     }
 
     [ExcludeFromCodeCoverage]

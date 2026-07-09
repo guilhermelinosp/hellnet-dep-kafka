@@ -5,6 +5,7 @@ using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
 using Hellnet.Kafka.Serialization;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Hellnet.Kafka.Internal;
 
@@ -18,6 +19,7 @@ internal sealed class DeadLetterService : IAsyncDisposable
     private readonly IMessageSerializer _serializer;
     private readonly HellnetKafkaOptions _options;
     private readonly ILogger<DeadLetterService> _logger;
+    private readonly ResiliencePipeline _pipeline;
 
     public DeadLetterService(
         HellnetKafkaOptions options,
@@ -27,6 +29,7 @@ internal sealed class DeadLetterService : IAsyncDisposable
         _options = options;
         _serializer = serializer;
         _logger = logger;
+        _pipeline = ResiliencePipelines.DeadLetter(options);
 
         _producer = new ProducerBuilder<string, byte[]>(
             KafkaConfigBuilder.BuildProducerConfig(options, "dlq")).Build();
@@ -43,18 +46,21 @@ internal sealed class DeadLetterService : IAsyncDisposable
         var dlqTopic = _options.DeadLetterTopic ?? $"{context.Topic}.dlq";
         var data = _serializer.Serialize(message);
 
-        await _producer.ProduceAsync(dlqTopic, new Message<string, byte[]>
+        await _pipeline.ExecuteAsync(async cancel =>
         {
-            Key = message.MessageType,
-            Value = data,
-            Headers = new Headers
+            await _producer.ProduceAsync(dlqTopic, new Message<string, byte[]>
             {
-                new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
-                new("dlq.reason", Encoding.UTF8.GetBytes(reason)),
-                new("dlq.original.topic", Encoding.UTF8.GetBytes(context.Topic)),
-                new("dlq.original.partition", Encoding.UTF8.GetBytes(context.Partition.ToString())),
-                new("dlq.original.offset", Encoding.UTF8.GetBytes(context.Offset.ToString())),
-            },
+                Key = message.MessageType,
+                Value = data,
+                Headers = new Headers
+                {
+                    new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
+                    new("dlq.reason", Encoding.UTF8.GetBytes(reason)),
+                    new("dlq.original.topic", Encoding.UTF8.GetBytes(context.Topic)),
+                    new("dlq.original.partition", Encoding.UTF8.GetBytes(context.Partition.ToString())),
+                    new("dlq.original.offset", Encoding.UTF8.GetBytes(context.Offset.ToString())),
+                },
+            }, cancel);
         }, ct);
 
         _logger.LogWarning(

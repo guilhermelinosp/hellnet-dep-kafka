@@ -1,22 +1,22 @@
 using Hellnet.Kafka.Abstractions;
-
+using Hellnet.Kafka.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Hellnet.Kafka.Internal;
 
 /// <summary>
-/// Handles retry logic with exponential backoff.
+/// Handles retry logic using Polly resilience pipeline.
 /// When max retries exhausted, delegates to DeadLetterService.
 /// </summary>
 internal sealed class RetryEngine
 {
     private readonly int _maxRetries;
     private readonly ILogger _logger;
-    private readonly Func<TimeSpan, CancellationToken, Task> _wait;
+    private readonly ResiliencePipeline _pipeline;
 
-    // DI constructor — resolve all parameters from container
     internal RetryEngine(
-        Configuration.HellnetKafkaOptions options,
+        HellnetKafkaOptions options,
         ILogger<RetryEngine> logger)
         : this(options, logger, null)
     {
@@ -24,13 +24,13 @@ internal sealed class RetryEngine
 
     // Test constructor — injectable wait function
     internal RetryEngine(
-        Configuration.HellnetKafkaOptions options,
+        HellnetKafkaOptions options,
         ILogger<RetryEngine> logger,
         Func<TimeSpan, CancellationToken, Task>? wait)
     {
         _maxRetries = options.MaxRetries;
         _logger = logger;
-        _wait = wait ?? ((delay, ct) => Task.Delay(delay, ct));
+        _pipeline = ResiliencePipelines.Handler(options);
     }
 
     public async Task ExecuteAsync<TMessage>(
@@ -41,14 +41,14 @@ internal sealed class RetryEngine
         where TMessage : IMessage
     {
         var attempt = 0;
-        while (true)
+
+        await _pipeline.ExecuteAsync(async cancel =>
         {
             attempt++;
 
             try
             {
-                await handler.HandleAsync(message, context, ct);
-                return; // success
+                await handler.HandleAsync(message, context, cancel);
             }
             catch (OperationCanceledException)
             {
@@ -65,12 +65,10 @@ internal sealed class RetryEngine
                     _logger.LogError(ex,
                         "Exhausted retries for {MessageType} [{MessageId}]. Sending to DLQ.",
                         message.MessageType, context.MessageId);
-                    throw; // caller sends to DLQ
                 }
 
-                var delay = TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100);
-                await _wait(delay, ct);
+                throw; // Polly retries, then propagates to caller
             }
-        }
+        }, ct);
     }
 }
