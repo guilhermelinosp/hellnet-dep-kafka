@@ -38,7 +38,7 @@ internal sealed class DeadLetterService : IAsyncDisposable
         IMessageContext context,
         string reason,
         CancellationToken ct = default)
-        where TMessage : IMessage
+        where TMessage : class, IMessage
     {
         var dlqTopic = _options.DeadLetterTopic ?? $"{context.Topic}.dlq";
         var data = _serializer.Serialize(message);
