@@ -638,10 +638,10 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
-    public void AddHellnetKafkaWithDefaults_SetsInfraBrokers()
+    public void AddHellnetKafka_SetsInfraBrokers()
     {
         var services = new ServiceCollection();
-        services.AddHellnetKafkaWithDefaults();
+        services.AddHellnetKafka();
         var sp = services.BuildServiceProvider();
         var opts = sp.GetRequiredService<HellnetKafkaOptions>();
         Assert.Equal("kafka.hellnet.com.br:9094", opts.Brokers);

@@ -20,7 +20,7 @@ Environment.SetEnvironmentVariable("HELLNET_KAFKA_CONSUMER_GROUP", group);
 
 var b = Host.CreateApplicationBuilder();
 b.Logging.AddConsole().SetMinimumLevel(LogLevel.Information);
-b.Services.AddHellnetKafkaWithDefaults();
+b.Services.AddHellnetKafka();
 var host = b.Build();
 await host.StartAsync();
 await Task.Delay(3000);
