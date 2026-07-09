@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Confluent.Kafka;
 using Hellnet.Kafka.Abstractions;
 using Hellnet.Kafka.Configuration;
@@ -23,37 +24,8 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
         _serializer = serializer;
         _logger = logger;
 
-        var config = new ProducerConfig
-        {
-            BootstrapServers = options.Brokers,
-            EnableIdempotence = options.Idempotent,
-            Acks = options.Acks?.ToLowerInvariant() switch
-            {
-                "all" => Confluent.Kafka.Acks.All,
-                "leader" => Confluent.Kafka.Acks.Leader,
-                "none" => Confluent.Kafka.Acks.None,
-                _ => Confluent.Kafka.Acks.All,
-            },
-            ClientId = options.ClientId,
-        };
-
-        if (!string.IsNullOrWhiteSpace(options.SaslMechanism))
-        {
-            config.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-            config.SaslMechanism = options.SaslMechanism switch
-            {
-                "PLAIN" => Confluent.Kafka.SaslMechanism.Plain,
-                "SCRAM-SHA-256" => Confluent.Kafka.SaslMechanism.ScramSha256,
-                "SCRAM-SHA-512" => Confluent.Kafka.SaslMechanism.ScramSha512,
-                "GSSAPI" => Confluent.Kafka.SaslMechanism.Gssapi,
-                "OAUTHBEARER" => Confluent.Kafka.SaslMechanism.OAuthBearer,
-                _ => null,
-            };
-            config.SaslUsername = options.SaslUsername;
-            config.SaslPassword = options.SaslPassword;
-        }
-
-        _producer = new ProducerBuilder<string, byte[]>(config).Build();
+        _producer = new ProducerBuilder<string, byte[]>(
+            KafkaConfigBuilder.BuildProducerConfig(options)).Build();
     }
 
     [ExcludeFromCodeCoverage]
@@ -69,8 +41,8 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
             Value = data,
             Headers = new Headers
             {
-                new Header("message.type", System.Text.Encoding.UTF8.GetBytes(message.MessageType)),
-                new Header("content.type", System.Text.Encoding.UTF8.GetBytes("json")),
+                new("message.type", Encoding.UTF8.GetBytes(message.MessageType)),
+                new("content.type", Encoding.UTF8.GetBytes(_options.DefaultSerializer)),
             },
         }, ct);
 
@@ -89,10 +61,13 @@ internal sealed class KafkaMessageBus : IMessageBus, IAsyncDisposable
         }
     }
 
-    internal static string ResolveTopic(IMessage message)
+    internal string ResolveTopic(IMessage message)
     {
-        // Future: allow topic mapping via configuration
-        return message.MessageType;
+        var prefix = _options.TopicPrefix;
+        var topic = string.IsNullOrEmpty(prefix)
+            ? message.MessageType
+            : $"{prefix}.{message.MessageType}";
+        return topic;
     }
 
     public async ValueTask DisposeAsync()

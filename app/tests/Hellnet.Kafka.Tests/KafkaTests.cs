@@ -72,15 +72,27 @@ public sealed class KafkaEnvBinderTests : IDisposable
 
     private static void ClearEnv()
     {
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_BROKERS", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_CONSUMER_GROUP", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_DEFAULT_SERIALIZER", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_AUTO_REGISTER_HANDLERS", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_MAX_RETRIES", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_IDEMPOTENT", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_ACKS", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_CLIENT_ID", null);
-        Environment.SetEnvironmentVariable("HELLNET_KAFKA_SASL_MECHANISM", null);
+        foreach (var key in new[]
+        {
+            "HELLNET_KAFKA_BROKERS",
+            "HELLNET_KAFKA_CONSUMER_GROUP",
+            "HELLNET_KAFKA_DEFAULT_SERIALIZER",
+            "HELLNET_KAFKA_AUTO_REGISTER_HANDLERS",
+            "HELLNET_KAFKA_MAX_RETRIES",
+            "HELLNET_KAFKA_IDEMPOTENT",
+            "HELLNET_KAFKA_ACKS",
+            "HELLNET_KAFKA_CLIENT_ID",
+            "HELLNET_KAFKA_SASL_MECHANISM",
+            "HELLNET_KAFKA_SECURITY_PROTOCOL",
+            "HELLNET_KAFKA_SSL_CA_LOCATION",
+            "HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM",
+            "HELLNET_KAFKA_SCHEMA_REGISTRY_URL",
+            "HELLNET_KAFKA_TOPIC_PREFIX",
+            "HELLNET_KAFKA_GROUP_PROTOCOL",
+        })
+        {
+            Environment.SetEnvironmentVariable(key, null);
+        }
     }
 
     [Fact]
@@ -95,6 +107,11 @@ public sealed class KafkaEnvBinderTests : IDisposable
         Assert.Equal("all", options.Acks);
         Assert.Equal("earliest", options.AutoOffsetReset);
         Assert.Equal(Environment.MachineName, options.ClientId);
+        Assert.Equal("plaintext", options.SecurityProtocol);
+        Assert.Equal("https", options.SslEndpointIdentificationAlgorithm);
+        Assert.Null(options.SslCaLocation);
+        Assert.Equal("", options.TopicPrefix);
+        Assert.Equal("classic", options.GroupProtocol);
     }
 
     [Fact]
@@ -109,6 +126,12 @@ public sealed class KafkaEnvBinderTests : IDisposable
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_ACKS", "leader");
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_CLIENT_ID", "my-client");
         Environment.SetEnvironmentVariable("HELLNET_KAFKA_SASL_MECHANISM", "PLAIN");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_SECURITY_PROTOCOL", "sasl_ssl");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_SSL_CA_LOCATION", "/etc/kafka/ca.crt");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM", "");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_SCHEMA_REGISTRY_URL", "http://registry:8081");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_TOPIC_PREFIX", "hellnet");
+        Environment.SetEnvironmentVariable("HELLNET_KAFKA_GROUP_PROTOCOL", "consumer");
 
         var options = KafkaEnvBinder.Bind();
         Assert.Equal("kafka-1:9092,kafka-2:9092", options.Brokers);
@@ -120,6 +143,12 @@ public sealed class KafkaEnvBinderTests : IDisposable
         Assert.Equal("leader", options.Acks);
         Assert.Equal("my-client", options.ClientId);
         Assert.Equal("PLAIN", options.SaslMechanism);
+        Assert.Equal("sasl_ssl", options.SecurityProtocol);
+        Assert.Equal("/etc/kafka/ca.crt", options.SslCaLocation);
+        Assert.Equal("", options.SslEndpointIdentificationAlgorithm);
+        Assert.Equal("http://registry:8081", options.SchemaRegistryUrl);
+        Assert.Equal("hellnet", options.TopicPrefix);
+        Assert.Equal("consumer", options.GroupProtocol);
     }
 
     [Fact]
@@ -180,6 +209,83 @@ public sealed class HellnetKafkaOptionsTests
         Assert.True(opts.Idempotent);
         Assert.Equal("earliest", opts.AutoOffsetReset);
         Assert.NotNull(opts.ClientId);
+        Assert.Equal("plaintext", opts.SecurityProtocol);
+        Assert.Equal("https", opts.SslEndpointIdentificationAlgorithm);
+        Assert.Equal("", opts.TopicPrefix);
+        Assert.Equal("classic", opts.GroupProtocol);
+    }
+}
+
+// ============================================================
+// KafkaConfigBuilder tests
+// ============================================================
+
+public sealed class KafkaConfigBuilderTests
+{
+    [Fact]
+    public void BuildProducerConfig_SetsPlaintext_ByDefault()
+    {
+        var opts = new HellnetKafkaOptions();
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        Assert.Equal(Confluent.Kafka.SecurityProtocol.Plaintext, config.SecurityProtocol);
+    }
+
+    [Fact]
+    public void BuildProducerConfig_SetsSaslSsl_WhenConfigured()
+    {
+        var opts = new HellnetKafkaOptions
+        {
+            SecurityProtocol = "sasl_ssl",
+            SaslMechanism = "SCRAM-SHA-512",
+            SaslUsername = "user1",
+            SaslPassword = "pass1",
+            SslCaLocation = "/etc/ca.pem",
+            SslEndpointIdentificationAlgorithm = "",
+        };
+
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        Assert.Equal(Confluent.Kafka.SecurityProtocol.SaslSsl, config.SecurityProtocol);
+        Assert.Equal(Confluent.Kafka.SaslMechanism.ScramSha512, config.SaslMechanism);
+        Assert.Equal("user1", config.SaslUsername);
+        Assert.Equal("pass1", config.SaslPassword);
+        Assert.Equal("/etc/ca.pem", config.SslCaLocation);
+        Assert.Equal(Confluent.Kafka.SslEndpointIdentificationAlgorithm.None, config.SslEndpointIdentificationAlgorithm);
+    }
+
+    [Fact]
+    public void BuildProducerConfig_SetsSsl_WhenConfigured()
+    {
+        var opts = new HellnetKafkaOptions
+        {
+            SecurityProtocol = "ssl",
+            SslCaLocation = "/etc/ca.pem",
+        };
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts);
+        Assert.Equal(Confluent.Kafka.SecurityProtocol.Ssl, config.SecurityProtocol);
+    }
+
+    [Fact]
+    public void BuildConsumerConfig_SetsGroupProtocolClassic_ByDefault()
+    {
+        var opts = new HellnetKafkaOptions();
+        var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "my-group");
+        Assert.Equal(Confluent.Kafka.GroupProtocol.Classic, config.GroupProtocol);
+    }
+
+    [Fact]
+    public void BuildConsumerConfig_SetsGroupProtocolConsumer_WhenConfigured()
+    {
+        var opts = new HellnetKafkaOptions { GroupProtocol = "consumer" };
+        var config = KafkaConfigBuilder.BuildConsumerConfig(opts, "my-group");
+        Assert.Equal(Confluent.Kafka.GroupProtocol.Consumer, config.GroupProtocol);
+    }
+
+    [Fact]
+    public void BuildProducerConfig_AppendsClientIdSuffix()
+    {
+        var opts = new HellnetKafkaOptions { ClientId = "my-app" };
+        var config = KafkaConfigBuilder.BuildProducerConfig(opts, "dlq");
+        Assert.Equal("my-app.dlq", config.ClientId);
     }
 }
 
@@ -326,9 +432,6 @@ public sealed class RetryEngineTests
         var options = new HellnetKafkaOptions { MaxRetries = 3 };
         var engine = new RetryEngine(options, _logger, (_, _) => Task.CompletedTask);
 
-        // Handler that throws cancellation
-        var handler = new FailingHandler(failUntil: 99);
-        // Replace handler behavior to throw cancellation
         var ctx = CreateContext();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
@@ -436,6 +539,16 @@ public sealed class DependencyInjectionTests
         var handler = sp.GetService<IMessageHandler<TestMessage>>();
         Assert.Null(handler);
     }
+
+    [Fact]
+    public void AddHellnetKafka_RegistersJsonSerializer_ByDefault()
+    {
+        var services = new ServiceCollection();
+        services.AddHellnetKafka(new HellnetKafkaOptions { AutoRegisterHandlers = false });
+        var sp = services.BuildServiceProvider();
+        var serializer = sp.GetRequiredService<IMessageSerializer>();
+        Assert.IsType<JsonMessageSerializer>(serializer);
+    }
 }
 
 // ============================================================
@@ -456,10 +569,33 @@ public sealed class KafkaMessageBusTests
     }
 
     [Fact]
-    public void ResolveTopic_ReturnsMessageType()
+    public void ResolveTopic_ReturnsMessageType_WhenNoPrefix()
     {
+        var options = new HellnetKafkaOptions { TopicPrefix = "" };
+        var logger = NullLogger<KafkaMessageBus>.Instance;
+        var serializer = new JsonMessageSerializer();
+        var bus = new KafkaMessageBus(options, serializer, logger);
+
         var msg = new TestMessage();
-        Assert.Equal("test.message.v1", KafkaMessageBus.ResolveTopic(msg));
+        var topic = bus.ResolveTopic(msg);
+        Assert.Equal("test.message.v1", topic);
+
+        bus.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
+
+    [Fact]
+    public void ResolveTopic_PrependsPrefix_WhenConfigured()
+    {
+        var options = new HellnetKafkaOptions { TopicPrefix = "hellnet" };
+        var logger = NullLogger<KafkaMessageBus>.Instance;
+        var serializer = new JsonMessageSerializer();
+        var bus = new KafkaMessageBus(options, serializer, logger);
+
+        var msg = new TestMessage();
+        var topic = bus.ResolveTopic(msg);
+        Assert.Equal("hellnet.test.message.v1", topic);
+
+        bus.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }
 

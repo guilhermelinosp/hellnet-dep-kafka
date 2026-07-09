@@ -12,17 +12,28 @@ internal static class KafkaEnvBinder
         {
             Brokers = Env("HELLNET_KAFKA_BROKERS", "localhost:9092"),
             ConsumerGroup = Env("HELLNET_KAFKA_CONSUMER_GROUP", Environment.GetEnvironmentVariable("HELLNET_SERVICE_NAME") ?? string.Empty),
+            ClientId = Env("HELLNET_KAFKA_CLIENT_ID", Environment.MachineName),
+
+            SaslMechanism = EnvOrNull("HELLNET_KAFKA_SASL_MECHANISM"),
+            SaslUsername = EnvOrNull("HELLNET_KAFKA_SASL_USERNAME"),
+            SaslPassword = EnvOrNull("HELLNET_KAFKA_SASL_PASSWORD"),
+            SecurityProtocol = Env("HELLNET_KAFKA_SECURITY_PROTOCOL", "plaintext"),
+            SslCaLocation = EnvOrNull("HELLNET_KAFKA_SSL_CA_LOCATION"),
+            SslEndpointIdentificationAlgorithm = Env("HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM", "https"),
+
             DefaultSerializer = Env("HELLNET_KAFKA_DEFAULT_SERIALIZER", "json"),
             SchemaRegistryUrl = EnvOrNull("HELLNET_KAFKA_SCHEMA_REGISTRY_URL"),
+            SchemaRegistryUsername = EnvOrNull("HELLNET_KAFKA_SCHEMA_REGISTRY_USERNAME"),
+            SchemaRegistryPassword = EnvOrNull("HELLNET_KAFKA_SCHEMA_REGISTRY_PASSWORD"),
+
+            TopicPrefix = Env("HELLNET_KAFKA_TOPIC_PREFIX", ""),
+            GroupProtocol = Env("HELLNET_KAFKA_GROUP_PROTOCOL", "classic"),
+
             AutoRegisterHandlers = EnvBool("HELLNET_KAFKA_AUTO_REGISTER_HANDLERS", true),
             MaxRetries = EnvInt("HELLNET_KAFKA_MAX_RETRIES", 3),
             Idempotent = EnvBool("HELLNET_KAFKA_IDEMPOTENT", true),
             Acks = Env("HELLNET_KAFKA_ACKS", "all"),
             AutoOffsetReset = Env("HELLNET_KAFKA_AUTO_OFFSET_RESET", "earliest"),
-            ClientId = Env("HELLNET_KAFKA_CLIENT_ID", Environment.MachineName),
-            SaslMechanism = EnvOrNull("HELLNET_KAFKA_SASL_MECHANISM"),
-            SaslUsername = EnvOrNull("HELLNET_KAFKA_SASL_USERNAME"),
-            SaslPassword = EnvOrNull("HELLNET_KAFKA_SASL_PASSWORD"),
             DeadLetterTopic = EnvOrNull("HELLNET_KAFKA_DEAD_LETTER_TOPIC"),
         };
     }

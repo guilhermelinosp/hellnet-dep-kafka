@@ -6,17 +6,73 @@ namespace Hellnet.Kafka.Configuration;
 /// </summary>
 public sealed class HellnetKafkaOptions
 {
+    // ─── Broker ──────────────────────────────────────────────
+
     /// <summary>Comma-separated broker list. Env: HELLNET_KAFKA_BROKERS. Default: localhost:9092.</summary>
     public string Brokers { get; init; } = "localhost:9092";
 
     /// <summary>Consumer group ID. Env: HELLNET_KAFKA_CONSUMER_GROUP. Default: service name.</summary>
     public string ConsumerGroup { get; init; } = string.Empty;
 
+    /// <summary>Client ID. Env: HELLNET_KAFKA_CLIENT_ID. Default: machine name.</summary>
+    public string ClientId { get; init; } = Environment.MachineName;
+
+    // ─── SASL / SSL ──────────────────────────────────────────
+
+    /// <summary>SASL mechanism. Env: HELLNET_KAFKA_SASL_MECHANISM. e.g., PLAIN, SCRAM-SHA-512.</summary>
+    public string? SaslMechanism { get; init; }
+
+    /// <summary>SASL username. Env: HELLNET_KAFKA_SASL_USERNAME.</summary>
+    public string? SaslUsername { get; init; }
+
+    /// <summary>SASL password. Env: HELLNET_KAFKA_SASL_PASSWORD.</summary>
+    public string? SaslPassword { get; init; }
+
+    /// <summary>
+    /// Security protocol: plaintext, ssl, sasl_plaintext, sasl_ssl.
+    /// Env: HELLNET_KAFKA_SECURITY_PROTOCOL. Default: plaintext.
+    /// </summary>
+    public string SecurityProtocol { get; init; } = "plaintext";
+
+    /// <summary>Path to CA certificate for TLS verification. Env: HELLNET_KAFKA_SSL_CA_LOCATION.</summary>
+    public string? SslCaLocation { get; init; }
+
+    /// <summary>
+    /// SSL endpoint identification algorithm. Set empty to disable hostname verification.
+    /// Env: HELLNET_KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM. Default: https.
+    /// </summary>
+    public string SslEndpointIdentificationAlgorithm { get; init; } = "https";
+
+    // ─── Serialization / Schema Registry ─────────────────────
+
     /// <summary>Default serializer: json, avro, protobuf. Env: HELLNET_KAFKA_DEFAULT_SERIALIZER. Default: json.</summary>
     public string DefaultSerializer { get; init; } = "json";
 
     /// <summary>Schema Registry URL. Env: HELLNET_KAFKA_SCHEMA_REGISTRY_URL. Optional.</summary>
     public string? SchemaRegistryUrl { get; init; }
+
+    /// <summary>Basic auth username for Schema Registry. Env: HELLNET_KAFKA_SCHEMA_REGISTRY_USERNAME.</summary>
+    public string? SchemaRegistryUsername { get; init; }
+
+    /// <summary>Basic auth password for Schema Registry. Env: HELLNET_KAFKA_SCHEMA_REGISTRY_PASSWORD.</summary>
+    public string? SchemaRegistryPassword { get; init; }
+
+    // ─── Topic / Consumer ────────────────────────────────────
+
+    /// <summary>
+    /// Prefix prepended to message type for topic resolution.
+    /// Env: HELLNET_KAFKA_TOPIC_PREFIX. Default: "".
+    /// Example: "hellnet" → topic becomes "hellnet.order.created.v1".
+    /// </summary>
+    public string TopicPrefix { get; init; } = "";
+
+    /// <summary>
+    /// Consumer rebalance protocol: classic, consumer.
+    /// Env: HELLNET_KAFKA_GROUP_PROTOCOL. Default: classic.
+    /// </summary>
+    public string GroupProtocol { get; init; } = "classic";
+
+    // ─── Behavior ────────────────────────────────────────────
 
     /// <summary>Auto-discover and register IMessageHandler implementations. Env: HELLNET_KAFKA_AUTO_REGISTER_HANDLERS. Default: true.</summary>
     public bool AutoRegisterHandlers { get; init; } = true;
@@ -32,20 +88,6 @@ public sealed class HellnetKafkaOptions
 
     /// <summary>Auto offset reset: earliest, latest, none. Env: HELLNET_KAFKA_AUTO_OFFSET_RESET. Default: earliest.</summary>
     public string AutoOffsetReset { get; init; } = "earliest";
-
-    /// <summary>Client ID. Env: HELLNET_KAFKA_CLIENT_ID. Default: machine name.</summary>
-    public string ClientId { get; init; } = Environment.MachineName;
-
-    // SASL / SSL — optional
-
-    /// <summary>SASL mechanism. Env: HELLNET_KAFKA_SASL_MECHANISM. e.g., PLAIN, SCRAM-SHA-512.</summary>
-    public string? SaslMechanism { get; init; }
-
-    /// <summary>SASL username. Env: HELLNET_KAFKA_SASL_USERNAME.</summary>
-    public string? SaslUsername { get; init; }
-
-    /// <summary>SASL password. Env: HELLNET_KAFKA_SASL_PASSWORD.</summary>
-    public string? SaslPassword { get; init; }
 
     /// <summary>Topic to send dead-letter messages. Env: HELLNET_KAFKA_DEAD_LETTER_TOPIC. Default: {topic}.dlq.</summary>
     public string? DeadLetterTopic { get; init; }
