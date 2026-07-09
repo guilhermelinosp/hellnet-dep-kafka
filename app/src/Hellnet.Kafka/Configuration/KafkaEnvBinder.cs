@@ -44,6 +44,13 @@ internal static class KafkaEnvBinder
 
             AutoRegisterHandlers = EnvBool("HELLNET_KAFKA_AUTO_REGISTER_HANDLERS", @base.AutoRegisterHandlers),
             MaxRetries = EnvInt("HELLNET_KAFKA_MAX_RETRIES", @base.MaxRetries),
+            RetryDelayMs = EnvInt("HELLNET_KAFKA_RETRY_DELAY_MS", @base.RetryDelayMs),
+            RetryMaxDelayMs = EnvInt("HELLNET_KAFKA_RETRY_MAX_DELAY_MS", @base.RetryMaxDelayMs),
+            RetryJitterMs = EnvInt("HELLNET_KAFKA_RETRY_JITTER_MS", @base.RetryJitterMs),
+            TimeoutProduceMs = EnvInt("HELLNET_KAFKA_TIMEOUT_PRODUCE_MS", @base.TimeoutProduceMs),
+            TimeoutSchemaRegistryMs = EnvInt("HELLNET_KAFKA_TIMEOUT_SCHEMA_REGISTRY_MS", @base.TimeoutSchemaRegistryMs),
+            CircuitBreakerFailureCount = EnvInt("HELLNET_KAFKA_CIRCUIT_BREAKER_COUNT", @base.CircuitBreakerFailureCount),
+            CircuitBreakerDurationMs = EnvInt("HELLNET_KAFKA_CIRCUIT_BREAKER_DURATION_MS", @base.CircuitBreakerDurationMs),
             Idempotent = EnvBool("HELLNET_KAFKA_IDEMPOTENT", @base.Idempotent),
             Acks = Env("HELLNET_KAFKA_ACKS", @base.Acks),
             AutoOffsetReset = Env("HELLNET_KAFKA_AUTO_OFFSET_RESET", @base.AutoOffsetReset),

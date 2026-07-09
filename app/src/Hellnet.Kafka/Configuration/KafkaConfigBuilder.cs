@@ -24,6 +24,8 @@ internal static class KafkaConfigBuilder
             ClientId = string.IsNullOrEmpty(clientIdSuffix)
                 ? options.ClientId
                 : $"{options.ClientId}.{clientIdSuffix}",
+            MessageTimeoutMs = options.TimeoutProduceMs,
+            RequestTimeoutMs = options.TimeoutProduceMs,
         };
 
         ApplySecurity(options, config);
@@ -49,6 +51,7 @@ internal static class KafkaConfigBuilder
                 "consumer" => Confluent.Kafka.GroupProtocol.Consumer,
                 _ => Confluent.Kafka.GroupProtocol.Classic,
             },
+            SessionTimeoutMs = options.TimeoutProduceMs,
         };
 
         ApplySecurity(options, config);

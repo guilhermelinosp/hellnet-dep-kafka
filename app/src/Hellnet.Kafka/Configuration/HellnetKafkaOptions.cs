@@ -77,8 +77,33 @@ public sealed class HellnetKafkaOptions
     /// <summary>Auto-discover and register IMessageHandler implementations. Env: HELLNET_KAFKA_AUTO_REGISTER_HANDLERS. Default: true.</summary>
     public bool AutoRegisterHandlers { get; init; } = true;
 
+    // ─── Retry / Resilience ───────────────────────────────
+
     /// <summary>Max retries before dead-letter. Env: HELLNET_KAFKA_MAX_RETRIES. Default: 3.</summary>
     public int MaxRetries { get; init; } = 3;
+
+    /// <summary>Base delay (ms) for exponential backoff. Env: HELLNET_KAFKA_RETRY_DELAY_MS. Default: 200.</summary>
+    public int RetryDelayMs { get; init; } = 200;
+
+    /// <summary>Max delay (ms) for exponential backoff cap. Env: HELLNET_KAFKA_RETRY_MAX_DELAY_MS. Default: 30_000.</summary>
+    public int RetryMaxDelayMs { get; init; } = 30_000;
+
+    /// <summary>Max jitter (ms) added to backoff. Env: HELLNET_KAFKA_RETRY_JITTER_MS. Default: 100.</summary>
+    public int RetryJitterMs { get; init; } = 100;
+
+    /// <summary>Produce timeout (ms). Env: HELLNET_KAFKA_TIMEOUT_PRODUCE_MS. Default: 30_000.</summary>
+    public int TimeoutProduceMs { get; init; } = 30_000;
+
+    /// <summary>Schema Registry call timeout (ms). Env: HELLNET_KAFKA_TIMEOUT_SCHEMA_REGISTRY_MS. Default: 10_000.</summary>
+    public int TimeoutSchemaRegistryMs { get; init; } = 10_000;
+
+    /// <summary>Circuit breaker: consecutive failures before open. Env: HELLNET_KAFKA_CIRCUIT_BREAKER_COUNT. Default: 5.</summary>
+    public int CircuitBreakerFailureCount { get; init; } = 5;
+
+    /// <summary>Circuit breaker: duration open (ms). Env: HELLNET_KAFKA_CIRCUIT_BREAKER_DURATION_MS. Default: 30_000.</summary>
+    public int CircuitBreakerDurationMs { get; init; } = 30_000;
+
+    // ─── Producer ─────────────────────────────────────────
 
     /// <summary>Enable idempotent producer. Env: HELLNET_KAFKA_IDEMPOTENT. Default: true.</summary>
     public bool Idempotent { get; init; } = true;
