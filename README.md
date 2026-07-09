@@ -21,7 +21,6 @@ dotnet add package Hellnet.Kafka
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
 - [ADR — Decisões Técnicas](#adr--decisões-técnicas)
-- [Testes](#testes)
 
 ---
 
@@ -267,8 +266,8 @@ app/
 │   ├── Internal/             # KafkaMessageBus, KafkaConsumerHost, RetryEngine, DLQ
 │   ├── Serialization/        # IMessageSerializer, Json, Avro
 │   └── DependencyInjection.cs
-├── tests/Hellnet.Kafka.UnitTests/       # 55 testes (xUnit, FluentAssertions, Moq)
-└── tests/Hellnet.Kafka.IntegrationTests/ # 2 testes (console app, Kafka real)
+├── tests/Hellnet.Kafka.UnitTests/
+└── tests/Hellnet.Kafka.IntegrationTests/
 ```
 
 ---
@@ -289,36 +288,6 @@ As decisões arquiteturais da biblioteca estão documentadas no formato ADR (Arc
 | 6 | **RetryEngine com Polly** | Substitui while-loop manual por pipeline testado |
 | 7 | **Schema Registry** | Avro/JSON/Protobuf via Confluent Serdes + Apicurio |
 | 8 | **LongRunning tasks** | Cada consumer em thread dedicada (TaskCreationOptions.LongRunning) |
-
----
-
-## Testes
-
-```bash
-# Unit (55 testes, 90% coverage)
-dotnet test app/tests/Hellnet.Kafka.UnitTests/
-
-# Coverage com threshold
-dotnet test app/tests/Hellnet.Kafka.UnitTests/ -c release \
-  /p:CollectCoverage=true /p:Exclude="[*Tests]*" \
-  /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
-
-# Integration (requer infra Hellnet real)
-HELLNET_KAFKA_BROKERS=192.168.1.254:9094 \
-HELLNET_KAFKA_SSL_CA_LOCATION=/tmp/hellnet-ca.crt \
-dotnet run --project app/tests/Hellnet.Kafka.IntegrationTests/
-```
-
-### Libs de teste
-
-| Pacote | Uso |
-|--------|-----|
-| `xunit` | Test runner |
-| `FluentAssertions` | Asserts legíveis: `x.Should().Be(y)` |
-| `Moq` | Mocks: `new Mock<IMessageHandler>()` |
-| `AutoFixture` | Dados automáticos: `new Fixture().Create<T>()` |
-| `AutoFixture.AutoMoq` | Auto-mock via AutoFixture |
-| `coverlet.msbuild` | Coverage integrado ao `dotnet test` |
 
 ---
 
