@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace Hellnet.Kafka.Tests;
+namespace Hellnet.Kafka.UnitTests;
 
 // ============================================================
 // Test doubles

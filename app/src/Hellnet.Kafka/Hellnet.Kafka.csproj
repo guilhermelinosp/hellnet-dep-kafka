@@ -53,7 +53,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Hellnet.Kafka.Tests" />
+        <InternalsVisibleTo Include="Hellnet.Kafka.UnitTests" />
     </ItemGroup>
 
     <ItemGroup>
