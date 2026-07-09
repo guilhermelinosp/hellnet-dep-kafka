@@ -1,0 +1,21 @@
+output: false
+pre-commit:
+  commands:
+    format:
+      glob: "{**/*.cs,**/*.yaml,**/*.yml,**/*.json}"
+      exclude:
+        - "**/bin/**"
+        - "**/obj/**"
+      run: |
+        dotnet format app/*.slnx --verbosity quiet --no-restore
+        git diff --cached --name-only --diff-filter=ACM -- '*.yaml' '*.yml' | xargs -r yq eval -i '.'
+        git diff --cached --name-only --diff-filter=ACM -- '*.json' | xargs -r yq eval -i -o=json '.'
+    build:
+      run: dotnet build app/*.slnx -c release --nologo
+    coverage:
+      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        grep -Eq '^(feat|fix|docs|style|ref|perf|test|ci|chore|rev)(\(.+\))?!?: .+' {1}

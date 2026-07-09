@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+*.DotSettings.user
+
+# NuGet
+packages/
+*.nupkg
+
+# IDE
+.idea/
+.vs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+[Bb]uild/
+[Dd]eploy/
+
+# Coverage
+coverage/
+*.opencover.xml

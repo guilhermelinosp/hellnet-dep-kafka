@@ -1,0 +1,69 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <AssemblyName>Hellnet.Kafka</AssemblyName>
+        <RootNamespace>Hellnet.Kafka</RootNamespace>
+
+        <PackageId>Hellnet.Kafka</PackageId>
+        <Title>Hellnet Kafka</Title>
+        <Authors>Hellnet</Authors>
+        <Company>Hellnet</Company>
+        <Copyright>Hellnet</Copyright>
+
+        <Description>Opinionated Kafka integration library for .NET applications.</Description>
+        <PackageTags>kafka;confluent;event-driven;messaging;streaming;dotnet</PackageTags>
+
+        <PackageProjectUrl>https://github.com/guilhermelinosp/hellnet-dep-kafka</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/guilhermelinosp/hellnet-dep-kafka</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+        <IsPackable>true</IsPackable>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+        <Deterministic>true</Deterministic>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest</AnalysisLevel>
+        <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\..\docs\README.md" Pack="true" PackagePath="/" />
+        <None Include="..\..\..\assets\icon.png" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hellnet.Kafka.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Confluent.Kafka" Version="2.15.0" />
+      <PackageReference Include="Confluent.SchemaRegistry" Version="2.15.0" />
+      <PackageReference Include="Confluent.SchemaRegistry.Serdes.Avro" Version="2.15.0" />
+      <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="2.15.0" />
+      <PackageReference Include="Confluent.SchemaRegistry.Serdes.Protobuf" Version="2.15.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
+    </ItemGroup>
+
+</Project>
