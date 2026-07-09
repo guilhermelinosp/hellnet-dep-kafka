@@ -274,20 +274,7 @@ app/
 
 ## ADR — Decisões Técnicas
 
-As decisões arquiteturais da biblioteca estão documentadas no formato ADR (Architecture Decision Record):
-
-**Gist**: https://gist.github.com/guilhermelinosp/445a7b091f03abcca16839f342dab244
-
-| # | Decisão | Resumo |
-|---|---------|--------|
-| 1 | **Env-first** | `AddHellnetKafka()` com defaults da infra, sobrescrita por env vars |
-| 2 | **Auto-discover** | `IMessageHandler<T>` é descoberto automaticamente via assembly scan |
-| 3 | **Topic naming** | `{prefix}.{messageType}` — padrão consistente entre serviços |
-| 4 | **DLQ** | `{topic}.dlq` com headers de origem |
-| 5 | **Polly pipelines** | Timeout + Retry + Circuit Breaker em produce, handler, DLQ, Schema Registry |
-| 6 | **RetryEngine com Polly** | Substitui while-loop manual por pipeline testado |
-| 7 | **Schema Registry** | Avro/JSON/Protobuf via Confluent Serdes + Apicurio |
-| 8 | **LongRunning tasks** | Cada consumer em thread dedicada (TaskCreationOptions.LongRunning) |
+As decisões arquiteturais da biblioteca estão documentadas no formato ADR (Architecture Decision Record).
 
 ---
 
