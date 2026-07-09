@@ -11,9 +11,9 @@ pre-commit:
         git diff --cached --name-only --diff-filter=ACM -- '*.yaml' '*.yml' | xargs -r yq eval -i '.'
         git diff --cached --name-only --diff-filter=ACM -- '*.json' | xargs -r yq eval -i -o=json '.'
     build:
-      run: dotnet build app/*.slnx -c release --nologo
+      run: dotnet build app/*.slnx -c release --nologo --verbosity quiet
     coverage:
-      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
+      run: dotnet test app/*.slnx -c release --nologo --verbosity quiet --no-build /p:CollectCoverage=true /p:Exclude="[*Tests]*" /p:Threshold=90 /p:ThresholdType=line /p:ThresholdStat=total
 commit-msg:
   commands:
     conventional:
