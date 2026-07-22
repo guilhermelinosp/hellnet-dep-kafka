@@ -10,4 +10,4 @@ permissions: write-all
 
 jobs:
   create-pr:
-    uses: guilhermelinosp/ci-templates/.github/workflows/auto-pr.yml@main
+    uses: guilhermelinosp/ci-templates/.github/workflows/auto-pr.yml@migrate-to-ubuntu-latest
